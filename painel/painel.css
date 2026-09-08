@@ -1,61 +1,17 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Fina Massa Pizzaria - Painel Administrativo & Cozinha (Kitchen & Admin Dashboard)
-   Identidade Visual: BordÃ´ (#74112B) + Dourado (#DCA744) + Branco (#FFFFFF / #FAF8F5)
+   Identidade Visual: Bordô (#74112B) + Dourado (#DCA744) + Branco (#FFFFFF / #FAF8F5)
    ========================================================================== */
 
+@import url('../branding-theme.css');
+
 :root {
-    /* Cores Principais */
-    --primary: #74112B;               /* BordÃ´ / Vinho Nobre */
-    --primary-hover: #8E1635;         /* BordÃ´ mais claro ao interagir */
-    --primary-dark: #530A1D;          /* BordÃ´ profundo para a sidebar */
-    --primary-light: rgba(116, 17, 43, 0.08); /* Fundo suave para destaques */
-    --primary-gradient: linear-gradient(135deg, #8E1635 0%, #74112B 100%);
-    
-    /* Dourado / Amarelo Ouro de Destaque */
-    --accent-gold: #DCA744;           /* Ouro quente do lettering */
-    --accent-gold-hover: #E5B654;
-    --accent-gold-dark: #B8861B;
-    --accent-gold-light: rgba(220, 167, 68, 0.16);
-    --gold-gradient: linear-gradient(135deg, #F3C669 0%, #DCA744 100%);
-    
     /* Status das Comandas & Pedidos */
-    --status-pending: #DCA744;
-    --status-preparando: #1976D2;
-    --status-entrega: #7B1FA2;
-    --status-entregue: #2E7D32;
-    --status-cancelado: #C62828;
-    
-    /* Fundos & SuperfÃ­cies */
-    --bg-main: #FAF8F5;               /* Branco marfim / suave */
-    --bg-sidebar: #530A1D;            /* BordÃ´ profundo para a barra lateral */
-    --bg-card: #FFFFFF;               /* Branco puro para os cards */
-    --bg-surface: #F5EFEB;            /* SuperfÃ­cie secundÃ¡ria sutil */
-    --bg-input: #FFFFFF;              /* Fundo de campos e inputs */
-    
-    /* Tipografia & Textos */
-    --text-main: #2C050F;             /* Vinho-preto profundo para leitura nÃ­tida */
-    --text-body: #4A3B3E;             /* Texto de parÃ¡grafos e detalhes */
-    --text-muted: #7A696D;            /* Texto secundÃ¡rio */
-    --text-light: #A8989C;            /* Textos sutis */
-    --text-white: #FFFFFF;
-    
-    /* Bordas & Sombras */
-    --border-color: rgba(116, 17, 43, 0.12);
-    --border-gold: rgba(220, 167, 68, 0.40);
-    
-    /* Estrutura & Raios */
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 18px;
-    --radius-xl: 24px;
-    --radius-full: 9999px;
-    
-    /* Sombras */
-    --shadow-sm: 0 2px 8px rgba(74, 11, 28, 0.05);
-    --shadow-md: 0 6px 20px rgba(74, 11, 28, 0.08);
-    --shadow-lg: 0 14px 36px rgba(74, 11, 28, 0.14);
-    
-    --transition: all 0.22s cubic-bezier(0.2, 0, 0, 1);
+    --status-pending: #F5A623;
+    --status-preparando: #1E90FF;
+    --status-entrega: #A55EEA;
+    --status-entregue: #2ED573;
+    --status-cancelado: #FF4757;
 }
 
 /* ==========================================================================
@@ -95,14 +51,19 @@ input, select, textarea {
 /* ==========================================================================
    1. LOGIN OVERLAY
    ========================================================================== */
+/* ==========================================================================
+   1. LOGIN OVERLAY (Identidade Oficial Fina Massa)
+   ========================================================================== */
 .login-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(135deg, rgba(83, 10, 29, 0.95), rgba(44, 5, 15, 0.98));
-    backdrop-filter: blur(8px);
+    background: linear-gradient(180deg, rgba(11, 12, 14, 0.85) 0%, rgba(11, 12, 14, 0.95) 100%), url('../assets/hero_banner.jpg');
+    background-size: cover;
+    background-position: center;
+    backdrop-filter: blur(10px);
     z-index: 50000;
     display: flex;
     align-items: center;
@@ -111,21 +72,22 @@ input, select, textarea {
 }
 
 .login-card {
-    background: #FFFFFF;
-    border: 1.5px solid var(--accent-gold);
+    background: #121419;
+    border: 1px solid rgba(245, 166, 35, 0.6);
     border-radius: var(--radius-xl);
-    padding: 36px 32px;
+    padding: 40px 34px;
     width: 100%;
-    max-width: 400px;
+    max-width: 410px;
     text-align: center;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(245, 166, 35, 0.15);
 }
 
 .login-card h2 {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
-    color: var(--primary);
+    color: var(--text-main);
     margin-bottom: 4px;
+    letter-spacing: 0.5px;
 }
 
 .login-card p {
@@ -136,9 +98,9 @@ input, select, textarea {
 
 .login-card input {
     width: 100%;
-    height: 46px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
+    height: 48px;
+    background: #181B22;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: var(--radius-md);
     padding: 0 40px 0 16px;
     font-size: 14px;
@@ -148,8 +110,8 @@ input, select, textarea {
 
 .login-card input:focus {
     border-color: var(--primary);
-    background: #FFFFFF;
-    box-shadow: 0 0 0 3px rgba(116, 17, 43, 0.1);
+    background: #1C2028;
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2);
 }
 
 .password-icon {
@@ -164,27 +126,29 @@ input, select, textarea {
 
 .btn-login {
     width: 100%;
-    height: 48px;
+    height: 50px;
     background: var(--primary-gradient);
-    color: #FFFFFF;
+    color: var(--text-on-gold);
     border-radius: var(--radius-md);
+    border: none;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(116, 17, 43, 0.35);
+    box-shadow: 0 4px 18px rgba(245, 166, 35, 0.4);
     transition: var(--transition);
 }
 
 .btn-login:hover {
+    background: linear-gradient(135deg, #FFAF38 0%, #E69516 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(116, 17, 43, 0.5);
+    box-shadow: 0 6px 24px rgba(245, 166, 35, 0.55);
 }
 
 .login-error {
     margin-top: 14px;
     padding: 8px 12px;
-    background: rgba(198, 40, 40, 0.1);
-    color: #C62828;
+    background: rgba(255, 71, 87, 0.15);
+    color: var(--status-red);
     border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 600;
@@ -1922,19 +1886,45 @@ input:checked + .slider:before {
     box-shadow: 0 6px 18px rgba(46, 125, 50, 0.5);
 }
 
+.btn-quick-pizza-builder {
+    background: linear-gradient(135deg, #e65100, #bf360c);
+    color: #ffffff;
+    border: 1px solid rgba(255, 152, 0, 0.4);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    font-weight: 800;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(230, 81, 0, 0.35);
+    transition: var(--transition);
+}
+.btn-quick-pizza-builder:hover {
+    background: linear-gradient(135deg, #f57c00, #e65100);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 16px rgba(230, 81, 0, 0.5);
+}
+
 .manual-item-custom-container {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    width: 90%;
-    max-width: 440px;
-    padding: 20px;
+    width: 94%;
+    max-width: 640px;
+    max-height: 90vh;
+    padding: 22px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
+    display: flex;
+    flex-direction: column;
 }
 .manual-item-custom-body {
     display: flex;
     flex-direction: column;
     gap: 14px;
     margin: 16px 0;
+    overflow-y: auto;
 }
 .custom-field-group {
     display: flex;
@@ -1962,6 +1952,10 @@ input:checked + .slider:before {
     font-size: 16px;
     cursor: pointer;
 }
+.custom-qty-picker button:hover {
+    background: rgba(245, 166, 35, 0.15);
+    color: #f5a623;
+}
 .custom-qty-picker input {
     width: 50px;
     text-align: center;
@@ -1976,7 +1970,7 @@ input:checked + .slider:before {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 160px;
+    max-height: 180px;
     overflow-y: auto;
 }
 .manual-adicional-checkbox-row {
@@ -2001,31 +1995,192 @@ input:checked + .slider:before {
     font-weight: 700;
     color: #81c784;
 }
-.custom-field-group textarea {
-    padding: 8px 10px;
+
+/* Grupos de Opções do PizzaEngine (Bordas e Sabores) */
+.manual-opt-group-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.manual-opt-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.manual-opt-group-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.manual-opt-group-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+}
+.manual-opt-group-badge.badge-selected {
+    background: rgba(46, 125, 50, 0.2);
+    color: #81c784;
+    border: 1px solid rgba(76, 175, 80, 0.4);
+}
+.manual-opt-group-badge.badge-required {
+    background: rgba(239, 83, 80, 0.15);
+    color: #ef5350;
+    border: 1px solid rgba(239, 83, 80, 0.35);
+}
+.manual-opt-flavor-search {
+    width: 100%;
+    padding: 7px 10px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
-    background: var(--bg-surface);
+    background: var(--bg-card);
     color: var(--text-main);
-    font-size: 12.5px;
-    resize: vertical;
+    font-size: 12px;
+    outline: none;
+    box-sizing: border-box;
 }
-.manual-item-custom-footer {
+.manual-opt-flavor-search:focus {
+    border-color: #f5a623;
+}
+.manual-opt-list {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    border-top: 1px solid var(--border-color);
-    padding-top: 14px;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
-.btn-confirm-add-item {
-    background: linear-gradient(135deg, #7b1fa2, #9c27b0);
-    color: #ffffff;
+.manual-opt-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: var(--transition);
+    gap: 10px;
+}
+.manual-opt-row:hover {
+    border-color: rgba(245, 166, 35, 0.4);
+    background: rgba(255, 255, 255, 0.03);
+}
+.manual-opt-row.selected {
+    border-color: #f5a623;
+    background: rgba(245, 166, 35, 0.08);
+}
+.manual-opt-row input[type="radio"], .manual-opt-row input[type="checkbox"] {
+    accent-color: #f5a623;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.manual-opt-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.manual-opt-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.manual-opt-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.25;
+}
+.manual-opt-price-tag {
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.manual-opt-price-tag.price-extra {
+    color: #f5a623;
+}
+.manual-opt-price-tag.price-included {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+/* Quick Pizza Picker Modal Items */
+.quick-pizza-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: var(--transition);
+    gap: 12px;
+}
+.quick-pizza-card:hover {
+    border-color: #f5a623;
+    background: rgba(245, 166, 35, 0.06);
+    transform: translateX(3px);
+}
+.quick-pizza-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.quick-pizza-desc {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.quick-pizza-btn-start {
+    background: linear-gradient(135deg, #e65100, #bf360c);
+    color: #fff;
     border: none;
-    padding: 8px 16px;
+    padding: 7px 14px;
     border-radius: var(--radius-sm);
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
     cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* Cart Pizza Formatting */
+.manual-cart-pizza-flavors {
+    font-size: 11.5px;
+    color: #f5a623;
+    font-weight: 700;
+    margin-top: 2px;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    line-height: 1.3;
+}
+.manual-cart-pizza-border {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 /* ==========================================================================

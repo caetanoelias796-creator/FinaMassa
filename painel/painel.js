@@ -1,4 +1,4 @@
-﻿
+
 /* ==========================================================================
    Date & Period Filter Helpers & Global State
    ========================================================================== */
@@ -3127,12 +3127,18 @@ function initMenuSync() {
                 }
                 renderMenuManager();
             } else {
-                console.log("[Fina Massa Painel] Cardápio no Firebase aguardando sincronização de produtos.");
-                renderMenuManager();
+                console.log("[Fina Massa Painel] Cardápio no Firebase aguardando sincronização de produtos. Carregando ../menu.json como fallback...");
+                fetch('../menu.json', { cache: 'no-cache' })
+                    .then(r => r.json())
+                    .then(localData => {
+                        menuData = mergeDefaultMenuItems(localData || DEFAULT_MENU_DATA);
+                        renderMenuManager();
+                    })
+                    .catch(() => renderMenuManager());
             }
         });
     } else {
-        fetch('/api/menu')
+        fetch('../menu.json', { cache: 'no-cache' })
             .then(res => res.json())
             .then(data => {
                 menuData = mergeDefaultMenuItems(data || DEFAULT_MENU_DATA);

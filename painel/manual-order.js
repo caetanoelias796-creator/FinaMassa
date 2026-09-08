@@ -488,20 +488,26 @@ function renderManualOrderProducts() {
         const card = document.createElement('div');
         card.className = 'manual-product-card';
 
-        const priceVal = Number(prod.price || 0);
-        const priceFormatted = `R$ ${priceVal.toFixed(2).replace('.', ',')}`;
-        const imageSrc = prod.image ? `../${prod.image}` : '../assets/pizza_hero.png';
+        const isPizzaOrConfigurable = (prod.optionGroups && prod.optionGroups.length > 0) || prod.type === 'pizza' || (prod.categoryKey && prod.categoryKey.includes('pizza'));
+        const startPrice = getProductStartingPrice(prod);
+        const pricePrefix = (prod.optionGroups && prod.optionGroups.length > 0 && prod.pricingMode !== 'fixed') ? 'A partir de ' : '';
+        const priceFormatted = `${pricePrefix}R$ ${startPrice.toFixed(2).replace('.', ',')}`;
+        const imageSrc = prod.image ? `../${prod.image}` : (prod.categoryKey === 'pizzas_doces' ? '../assets/gourmet_doce_morango.png' : '../assets/pizza_hero.png');
+        const badgeHTML = prod.slices ? `<span style="font-size: 10px; background: rgba(245, 166, 35, 0.2); color: #f5a623; border: 1px solid rgba(245, 166, 35, 0.4); padding: 1px 5px; border-radius: 4px; font-weight: 700; margin-left: 6px;">${prod.slices} Fatias</span>` : '';
 
         card.innerHTML = `
             <img src="${imageSrc}" alt="${prod.name}" class="manual-product-img" onerror="this.src='../assets/pizza_hero.png'">
             <div class="manual-product-details">
-                <div class="manual-product-name">${prod.name}</div>
+                <div class="manual-product-name" style="display: flex; align-items: center;">
+                    <span>${prod.name}</span>
+                    ${badgeHTML}
+                </div>
                 <div class="manual-product-desc">${prod.description || ''}</div>
                 <div class="manual-product-bottom">
-                    <span class="manual-product-price">${priceFormatted}</span>
-                    <button type="button" class="manual-product-add-btn" onclick="openProductCustomizationModal('${prod.id}', '${prod.categoryKey}')">
-                        <span class="material-symbols-rounded" style="font-size: 16px;">add</span>
-                        <span>Adicionar</span>
+                    <span class="manual-product-price" style="font-size: 12.5px;">${priceFormatted}</span>
+                    <button type="button" class="manual-product-add-btn" style="${isPizzaOrConfigurable ? 'background: linear-gradient(135deg, #e65100, #bf360c); border-color: rgba(255,152,0,0.4);' : ''}" onclick="openProductCustomizationModal('${prod.id}', '${prod.categoryKey}')" title="${isPizzaOrConfigurable ? 'Montar Pizza' : 'Adicionar Produto'}">
+                        <span class="material-symbols-rounded" style="font-size: 16px;">${isPizzaOrConfigurable ? 'local_pizza' : 'add'}</span>
+                        <span>${isPizzaOrConfigurable ? 'Montar' : 'Adicionar'}</span>
                     </button>
                 </div>
             </div>
@@ -510,80 +516,229 @@ function renderManualOrderProducts() {
     });
 }
 
+function getProductStartingPrice(prod) {
+    if (!prod) return 0;
+    if (prod.displayPrice !== undefined && Number(prod.displayPrice) > 0) return Number(prod.displayPrice);
+    if (prod.price !== undefined && Number(prod.price) > 0) return Number(prod.price);
+    if (prod.basePrice !== undefined && Number(prod.basePrice) > 0) return Number(prod.basePrice);
+    if (prod.optionGroups && Array.isArray(prod.optionGroups)) {
+        let sum = Number(prod.basePrice || 0);
+        prod.optionGroups.forEach(g => {
+            if (g.options && g.options.length > 0) {
+                const prices = g.options.map(o => Number(o.price || 0));
+                const minPrice = Math.min(...prices);
+                sum += minPrice;
+            }
+        });
+        if (sum > 0) return sum;
+    }
+    return 0;
+}
+
 function handleManualSearchProduct(query) {
     manualOrderState.searchProductQuery = query;
     renderManualOrderProducts();
 }
 
-function openProductCustomizationModal(productId, categoryKey) {
-    if (!menuData || !menuData.menu_items || !menuData.menu_items[categoryKey]) return;
-    const product = menuData.menu_items[categoryKey].find(p => String(p.id) === String(productId));
-    if (!product) return;
+// ==========================================================================
+// Seletor Rápido de Pizzas (Atalho do Cabeçalho)
+// ==========================================================================
+function openQuickPizzaPicker() {
+    const modal = document.getElementById('quickPizzaPickerModal');
+    const list = document.getElementById('quickPizzaPickerList');
+    if (!modal || !list) return;
 
-    tempCustomizingProduct = {
-        id: product.id,
-        name: product.name,
-        basePrice: Number(product.price || 0),
-        categoryKey: categoryKey,
-        quantity: 1,
-        selectedAdicionais: [],
-        notes: ''
-    };
+    list.innerHTML = '';
 
-    const modal = document.getElementById('manualItemCustomizationModal');
-    const titleEl = document.getElementById('customModalItemTitle');
-    const basePriceEl = document.getElementById('customModalBasePrice');
-    const notesInput = document.getElementById('customModalItemNotes');
-    const qtyInput = document.getElementById('customModalItemQty');
-    const adicionaisList = document.getElementById('customModalAdicionaisList');
+    if (!menuData || !menuData.menu_items) {
+        if (typeof showToast === 'function') showToast('Cardápio ainda não carregado.', 'warning');
+        return;
+    }
 
-    if (titleEl) titleEl.textContent = product.name;
-    if (basePriceEl) basePriceEl.textContent = `R$ ${tempCustomizingProduct.basePrice.toFixed(2).replace('.', ',')}`;
-    if (notesInput) notesInput.value = '';
-    if (qtyInput) qtyInput.value = 1;
+    const pizzaCategories = ['pizzas_tradicionais', 'pizzas_especiais', 'pizzas_salgadas', 'pizzas_doces'];
+    let pizzaProducts = [];
 
-    if (adicionaisList) {
-        adicionaisList.innerHTML = '';
-        let availableAdicionais = [];
-        if (product.adicionais && typeof product.adicionais === 'object') {
-            Object.entries(product.adicionais).forEach(([k, a]) => {
-                availableAdicionais.push({ key: k, name: a.name || k, price: Number(a.price || 0) });
+    pizzaCategories.forEach(catKey => {
+        const items = menuData.menu_items[catKey];
+        if (Array.isArray(items)) {
+            items.forEach(p => {
+                if (p.available !== false) {
+                    pizzaProducts.push({ ...p, categoryKey: catKey });
+                }
             });
         }
-        if (availableAdicionais.length === 0 && menuData.adicionais && typeof menuData.adicionais === 'object') {
-            Object.entries(menuData.adicionais).forEach(([k, a]) => {
-                availableAdicionais.push({ key: k, name: a.name || k, price: Number(a.price || 0) });
-            });
-        }
-        if (availableAdicionais.length === 0 && Array.isArray(product.optionGroups)) {
-            const crustGrp = product.optionGroups.find(g => g.id === 'crust' || g.type === 'crust');
-            if (crustGrp && Array.isArray(crustGrp.options)) {
-                crustGrp.options.forEach(opt => {
-                    if (Number(opt.price || 0) > 0) {
-                        availableAdicionais.push({ key: opt.id, name: opt.name, price: Number(opt.price || 0) });
+    });
+
+    if (pizzaProducts.length === 0) {
+        Object.entries(menuData.menu_items).forEach(([catKey, items]) => {
+            if (Array.isArray(items)) {
+                items.forEach(p => {
+                    if (p.available !== false && (p.type === 'pizza' || (p.optionGroups && p.optionGroups.length > 0) || catKey.includes('pizza'))) {
+                        pizzaProducts.push({ ...p, categoryKey: catKey });
                     }
                 });
             }
-        }
-
-        if (availableAdicionais.length > 0) {
-            availableAdicionais.forEach(add => {
-                const addRow = document.createElement('label');
-                addRow.className = 'manual-adicional-checkbox-row';
-                const addPriceText = add.price > 0 ? `+ R$ ${add.price.toFixed(2).replace('.', ',')}` : 'Grátis';
-                addRow.innerHTML = `
-                    <input type="checkbox" data-key="${add.key}" data-name="${add.name}" data-price="${add.price}" onchange="updateCustomizingItemSubtotal()">
-                    <span class="manual-adicional-name">${add.name}</span>
-                    <span class="manual-adicional-price">${addPriceText}</span>
-                `;
-                adicionaisList.appendChild(addRow);
-            });
-        } else {
-            adicionaisList.innerHTML = '<div style="color: var(--text-muted); font-size: 12px; padding: 6px 0;">Nenhum adicional específico cadastrado para este item.</div>';
-        }
+        });
     }
 
-    updateCustomizingItemSubtotal();
+    if (pizzaProducts.length === 0) {
+        list.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Nenhuma pizza encontrada no cardápio.</div>';
+    } else {
+        pizzaProducts.forEach(prod => {
+            const startPrice = getProductStartingPrice(prod);
+            const card = document.createElement('div');
+            card.className = 'quick-pizza-card';
+            card.onclick = () => {
+                closeQuickPizzaPicker();
+                openProductCustomizationModal(prod.id, prod.categoryKey);
+            };
+
+            const slicesBadge = prod.slices ? `<span style="font-size: 10.5px; background: rgba(245, 166, 35, 0.2); color: #f5a623; border: 1px solid rgba(245, 166, 35, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 700;">${prod.slices} Fatias</span>` : '';
+
+            card.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(245, 166, 35, 0.15); display: flex; align-items: center; justify-content: center; color: #f5a623; flex-shrink: 0;">
+                        <span class="material-symbols-rounded">local_pizza</span>
+                    </div>
+                    <div>
+                        <div class="quick-pizza-title">
+                            <span>${prod.name}</span>
+                            ${slicesBadge}
+                        </div>
+                        <div class="quick-pizza-desc">${prod.description || 'Escolha a borda e os sabores para montar a sua pizza.'}</div>
+                    </div>
+                </div>
+                <button type="button" class="quick-pizza-btn-start">
+                    <span>A partir de R$ ${startPrice.toFixed(2).replace('.', ',')}</span>
+                    <span class="material-symbols-rounded" style="font-size: 16px;">arrow_forward</span>
+                </button>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    modal.classList.remove('display-none');
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'auto';
+}
+
+function closeQuickPizzaPicker() {
+    const modal = document.getElementById('quickPizzaPickerModal');
+    if (!modal) return;
+    modal.style.opacity = '0';
+    modal.style.pointerEvents = 'none';
+    setTimeout(() => modal.classList.add('display-none'), 150);
+}
+
+// ==========================================================================
+// Customizador de Pizzas e Produtos (Integração com PizzaEngine.js)
+// ==========================================================================
+let manualConfiguredProduct = null;
+let manualConfiguredSelections = {};
+let manualConfiguredQuantity = 1;
+let manualConfiguredNotes = '';
+let manualOptionSearchQueries = {};
+
+function openProductCustomizationModal(productId, categoryKey) {
+    if (!menuData || !menuData.menu_items) return;
+
+    let product = null;
+    if (categoryKey && menuData.menu_items[categoryKey]) {
+        const catList = Array.isArray(menuData.menu_items[categoryKey]) ? menuData.menu_items[categoryKey] : Object.values(menuData.menu_items[categoryKey]);
+        product = catList.find(p => String(p.id) === String(productId));
+    }
+    if (!product) {
+        Object.entries(menuData.menu_items).forEach(([cKey, items]) => {
+            if (product) return;
+            const arr = Array.isArray(items) ? items : Object.values(items || {});
+            const found = arr.find(p => String(p.id) === String(productId));
+            if (found) {
+                product = found;
+                categoryKey = cKey;
+            }
+        });
+    }
+
+    if (!product) {
+        if (typeof showToast === 'function') showToast('Produto não encontrado no cardápio.', 'warning');
+        return;
+    }
+
+    const modal = document.getElementById('manualItemCustomizationModal');
+    const titleEl = document.getElementById('customModalItemTitle');
+    const badgeEl = document.getElementById('customModalBadge');
+    const basePriceEl = document.getElementById('customModalBasePrice');
+    const catLabelEl = document.getElementById('customModalCategoryLabel');
+    const notesInput = document.getElementById('customModalItemNotes');
+    const notesCounter = document.getElementById('manualCustomNotesCounter');
+    const qtyInput = document.getElementById('customModalItemQty');
+    const alertBox = document.getElementById('customModalValidationAlert');
+    const optGroupsContainer = document.getElementById('manualGenericOptionGroupsContainer');
+    const simpleAdicionaisContainer = document.getElementById('manualSimpleAdicionaisContainer');
+    const iconBadge = document.getElementById('customModalIconBadge');
+
+    const isConfigurable = (product.optionGroups && product.optionGroups.length > 0) || product.type === 'pizza';
+
+    manualConfiguredProduct = product;
+    manualConfiguredQuantity = 1;
+    manualConfiguredNotes = '';
+    manualConfiguredSelections = {};
+    manualOptionSearchQueries = {};
+
+    if (titleEl) titleEl.textContent = product.name;
+    if (badgeEl) {
+        badgeEl.textContent = product.slices ? `${product.slices} Fatias` : (product.categoryName || 'Fina Massa');
+    }
+    if (basePriceEl) {
+        const startPrice = getProductStartingPrice(product);
+        basePriceEl.textContent = `A partir de R$ ${startPrice.toFixed(2).replace('.', ',')}`;
+    }
+    if (catLabelEl) {
+        catLabelEl.textContent = `• ${product.categoryName || (categoryKey ? categoryKey.replace('_', ' ').toUpperCase() : 'Cardápio')}`;
+    }
+    if (iconBadge) {
+        iconBadge.innerHTML = `<span class="material-symbols-rounded" style="font-size: 24px;">${isConfigurable ? 'local_pizza' : 'fastfood'}</span>`;
+    }
+    if (notesInput) notesInput.value = '';
+    if (notesCounter) notesCounter.textContent = '0 / 140';
+    if (qtyInput) qtyInput.value = 1;
+    if (alertBox) alertBox.classList.add('display-none');
+
+    if (isConfigurable) {
+        // Inicializa seleções padrão para Borda/Crust (1ª opção inclusa por padrão)
+        (product.optionGroups || []).forEach(group => {
+            manualConfiguredSelections[group.id] = [];
+            const isCrust = group.type === 'crust' || (group.title || '').toLowerCase().includes('preferência') || (group.title || '').toLowerCase().includes('borda');
+            if (isCrust && group.options && group.options.length > 0) {
+                manualConfiguredSelections[group.id] = [group.options[0]];
+            }
+        });
+
+        if (simpleAdicionaisContainer) simpleAdicionaisContainer.classList.add('display-none');
+        if (optGroupsContainer) {
+            optGroupsContainer.classList.remove('display-none');
+            renderManualGenericOptionGroups(product);
+        }
+        updateManualConfiguredPricePreview();
+    } else {
+        // Produto simples sem optionGroups (adicionais e quantidade)
+        tempCustomizingProduct = {
+            id: product.id,
+            name: product.name,
+            basePrice: Number(product.price || 0),
+            categoryKey: categoryKey,
+            quantity: 1,
+            selectedAdicionais: [],
+            notes: ''
+        };
+
+        if (optGroupsContainer) optGroupsContainer.classList.add('display-none');
+        if (simpleAdicionaisContainer) {
+            simpleAdicionaisContainer.classList.remove('display-none');
+            renderSimpleAdicionaisList(product);
+        }
+        updateCustomizingItemSubtotal();
+    }
 
     if (modal) {
         modal.classList.remove('display-none');
@@ -592,15 +747,318 @@ function openProductCustomizationModal(productId, categoryKey) {
     }
 }
 
+function renderManualGenericOptionGroups(product) {
+    const container = document.getElementById('manualGenericOptionGroupsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const groups = product.optionGroups || [];
+    if (groups.length === 0) return;
+
+    groups.forEach((group, index) => {
+        const groupCard = document.createElement('div');
+        groupCard.className = 'manual-opt-group-card';
+        groupCard.id = `manual_group_card_${group.id}`;
+
+        const max = group.maxSelections || 1;
+        const isSingle = max === 1;
+        const min = group.minSelections || (group.required ? 1 : 0);
+        const hasSearch = (group.options || []).length > 6;
+
+        let iconName = 'check_circle';
+        if (group.type === 'crust' || (group.title || '').toLowerCase().includes('preferência') || (group.title || '').toLowerCase().includes('borda')) {
+            iconName = 'circle';
+        } else if (group.type === 'flavor' || (group.title || '').toLowerCase().includes('sabor')) {
+            iconName = 'local_pizza';
+        }
+
+        groupCard.innerHTML = `
+            <div class="manual-opt-group-header">
+                <div class="manual-opt-group-title">
+                    <span class="material-symbols-rounded" style="color: #f5a623; font-size: 18px;">${iconName}</span>
+                    <span>${group.title || group.name}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" id="manual_btn_clear_${group.id}" onclick="clearManualOptionGroup('${group.id}')" style="display: none; font-size: 11px; font-weight: 700; color: #ef5350; background: rgba(239,83,80,0.1); border: 1px solid rgba(239,83,80,0.3); border-radius: 12px; padding: 2px 8px; cursor: pointer;">Limpar</button>
+                    <span class="manual-opt-group-badge" id="manual_badge_group_${group.id}"></span>
+                </div>
+            </div>
+            ${group.description ? `<div style="font-size: 11.5px; color: var(--text-muted); margin-top: -4px;">${group.description}</div>` : ''}
+            ${hasSearch ? `
+                <div style="margin-top: 4px;">
+                    <input type="text" class="manual-opt-flavor-search" id="manual_search_${group.id}" placeholder="🔍 Filtrar sabores (ex: calabresa, filé, 4 queijos...)" oninput="filterManualOptionGroup('${group.id}', this.value)">
+                </div>
+            ` : ''}
+            <div class="manual-opt-list" id="manual_opt_list_${group.id}"></div>
+        `;
+
+        const optionsContainer = groupCard.querySelector(`#manual_opt_list_${group.id}`);
+
+        (group.options || []).forEach(opt => {
+            const optPrice = Number(opt.price || 0);
+            const priceLabel = optPrice > 0
+                ? `<span class="manual-opt-price-tag price-extra">+ R$ ${optPrice.toFixed(2).replace('.', ',')}</span>`
+                : '<span class="manual-opt-price-tag price-included">Incluso</span>';
+
+            const optRow = document.createElement('div');
+            optRow.className = 'manual-opt-row';
+            optRow.id = `manual_opt_row_${group.id}_${opt.id}`;
+            optRow.setAttribute('data-name', (opt.name || '').toLowerCase());
+            optRow.setAttribute('data-desc', (opt.ingredients || opt.description || '').toLowerCase());
+
+            const inputType = isSingle ? 'radio' : 'checkbox';
+            const inputName = `manual_input_grp_${group.id}`;
+
+            optRow.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px; flex: 1; pointer-events: none;">
+                    <input type="${inputType}" id="manual_input_${group.id}_${opt.id}" name="${inputName}" value="${opt.id}" style="pointer-events: none;">
+                    <div class="manual-opt-info">
+                        <div class="manual-opt-name">${opt.name}</div>
+                        ${opt.ingredients ? `<div class="manual-opt-desc">${opt.ingredients}</div>` : ''}
+                    </div>
+                </div>
+                <div style="pointer-events: none;">${priceLabel}</div>
+            `;
+
+            optRow.onclick = (e) => {
+                e.preventDefault();
+                toggleManualOptionSelection(group, opt, isSingle);
+            };
+
+            optionsContainer.appendChild(optRow);
+        });
+
+        container.appendChild(groupCard);
+        updateManualOptionGroupUI(group.id);
+    });
+}
+
+function filterManualOptionGroup(groupId, query) {
+    const list = document.getElementById(`manual_opt_list_${groupId}`);
+    if (!list) return;
+
+    const normQuery = normalizeCustomerText(query || '');
+    const rows = list.querySelectorAll('.manual-opt-row');
+
+    rows.forEach(row => {
+        const name = normalizeCustomerText(row.getAttribute('data-name') || '');
+        const desc = normalizeCustomerText(row.getAttribute('data-desc') || '');
+        if (!normQuery || name.includes(normQuery) || desc.includes(normQuery)) {
+            row.style.display = 'flex';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function updateManualOptionGroupUI(groupId) {
+    if (!manualConfiguredProduct) return;
+    const group = (manualConfiguredProduct.optionGroups || []).find(g => g.id === groupId);
+    if (!group) return;
+
+    const selections = manualConfiguredSelections[groupId] || [];
+    const max = group.maxSelections || 1;
+    const min = group.minSelections || (group.required ? 1 : 0);
+    const isSingle = max === 1;
+
+    (group.options || []).forEach(opt => {
+        const row = document.getElementById(`manual_opt_row_${group.id}_${opt.id}`);
+        const input = document.getElementById(`manual_input_${group.id}_${opt.id}`);
+        const isSelected = selections.some(s => s.id === opt.id);
+
+        if (input) input.checked = isSelected;
+        if (row) {
+            if (isSelected) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        }
+    });
+
+    const badge = document.getElementById(`manual_badge_group_${group.id}`);
+    const btnClear = document.getElementById(`manual_btn_clear_${group.id}`);
+
+    if (badge) {
+        if (selections.length > 0) {
+            badge.textContent = isSingle ? '✓ Selecionado' : `✓ ${selections.length}/${max}`;
+            badge.className = 'manual-opt-group-badge badge-selected';
+        } else {
+            if (group.required) {
+                badge.textContent = isSingle ? 'Obrigatório (1)' : `Obrigatório (${min})`;
+                badge.className = 'manual-opt-group-badge badge-required';
+            } else {
+                badge.textContent = 'Opcional';
+                badge.className = 'manual-opt-group-badge';
+            }
+        }
+    }
+
+    if (btnClear) {
+        btnClear.style.display = selections.length > 0 ? 'inline-block' : 'none';
+    }
+}
+
+function toggleManualOptionSelection(group, option, isSingle) {
+    if (!manualConfiguredSelections[group.id]) {
+        manualConfiguredSelections[group.id] = [];
+    }
+
+    const currentList = manualConfiguredSelections[group.id];
+    const isCurrentlySelected = currentList.some(s => s.id === option.id);
+
+    if (isSingle) {
+        if (isCurrentlySelected) {
+            // Se for crust obrigatório, mantém selecionado
+            const isRequired = group.required;
+            if (!isRequired) {
+                manualConfiguredSelections[group.id] = [];
+            }
+        } else {
+            manualConfiguredSelections[group.id] = [option];
+        }
+    } else {
+        const max = group.maxSelections || 999;
+        const idx = currentList.findIndex(s => s.id === option.id);
+        if (!isCurrentlySelected) {
+            if (currentList.length >= max) {
+                if (typeof showToast === 'function') {
+                    showToast(`Você pode selecionar no máximo ${max} opção(ões) neste grupo.`, 'warning');
+                }
+                return;
+            }
+            currentList.push(option);
+        } else {
+            currentList.splice(idx, 1);
+        }
+    }
+
+    updateManualOptionGroupUI(group.id);
+    updateManualConfiguredPricePreview();
+}
+
+function clearManualOptionGroup(groupId) {
+    if (!manualConfiguredProduct) return;
+    manualConfiguredSelections[groupId] = [];
+    updateManualOptionGroupUI(groupId);
+    updateManualConfiguredPricePreview();
+}
+
+function updateCustomizingNotesCounter(el) {
+    manualConfiguredNotes = (el ? el.value : '').slice(0, 140);
+    const counter = document.getElementById('manualCustomNotesCounter');
+    if (counter) {
+        counter.textContent = `${manualConfiguredNotes.length} / 140`;
+    }
+}
+
+function updateManualConfiguredPricePreview() {
+    if (!manualConfiguredProduct) return;
+
+    const alertBox = document.getElementById('customModalValidationAlert');
+    const alertMsg = document.getElementById('customModalValidationMsg');
+    const btnConfirm = document.getElementById('btnConfirmAddCustomProduct');
+    const btnTotalSpan = document.getElementById('customModalBtnTotal');
+
+    if (typeof PizzaEngine === 'undefined') {
+        if (btnTotalSpan) btnTotalSpan.textContent = 'Adicionar ao Pedido';
+        return;
+    }
+
+    const notesInput = document.getElementById('customModalItemNotes');
+    const comment = notesInput ? notesInput.value.trim() : manualConfiguredNotes;
+
+    const res = PizzaEngine.buildConfiguredItem(
+        manualConfiguredProduct,
+        manualConfiguredSelections,
+        comment,
+        manualConfiguredQuantity
+    );
+
+    if (!res.success) {
+        if (alertBox && alertMsg) {
+            alertMsg.textContent = res.error || 'Selecione as opções obrigatórias.';
+            alertBox.classList.remove('display-none');
+        }
+        if (btnTotalSpan) {
+            btnTotalSpan.textContent = res.error || 'Opções incompletas';
+        }
+        if (btnConfirm) {
+            btnConfirm.disabled = true;
+            btnConfirm.style.opacity = '0.65';
+        }
+        return;
+    }
+
+    if (alertBox) alertBox.classList.add('display-none');
+    if (btnConfirm) {
+        btnConfirm.disabled = false;
+        btnConfirm.style.opacity = '1';
+    }
+    if (btnTotalSpan) {
+        btnTotalSpan.textContent = `Adicionar • R$ ${res.item.totalPrice.toFixed(2).replace('.', ',')}`;
+    }
+}
+
+function renderSimpleAdicionaisList(product) {
+    const adicionaisList = document.getElementById('customModalAdicionaisList');
+    if (!adicionaisList) return;
+    adicionaisList.innerHTML = '';
+
+    let availableAdicionais = [];
+    if (product.adicionais && typeof product.adicionais === 'object') {
+        Object.entries(product.adicionais).forEach(([k, a]) => {
+            availableAdicionais.push({ key: k, name: a.name || k, price: Number(a.price || 0) });
+        });
+    }
+    if (availableAdicionais.length === 0 && menuData.adicionais && typeof menuData.adicionais === 'object') {
+        Object.entries(menuData.adicionais).forEach(([k, a]) => {
+            availableAdicionais.push({ key: k, name: a.name || k, price: Number(a.price || 0) });
+        });
+    }
+
+    if (availableAdicionais.length > 0) {
+        availableAdicionais.forEach(add => {
+            const addRow = document.createElement('label');
+            addRow.className = 'manual-adicional-checkbox-row';
+            const addPriceText = add.price > 0 ? `+ R$ ${add.price.toFixed(2).replace('.', ',')}` : 'Grátis';
+            addRow.innerHTML = `
+                <input type="checkbox" data-key="${add.key}" data-name="${add.name}" data-price="${add.price}" onchange="updateCustomizingItemSubtotal()">
+                <span class="manual-adicional-name">${add.name}</span>
+                <span class="manual-adicional-price">${addPriceText}</span>
+            `;
+            adicionaisList.appendChild(addRow);
+        });
+    } else {
+        adicionaisList.innerHTML = '<div style="color: var(--text-muted); font-size: 12px; padding: 6px 0;">Nenhum adicional cadastrado para este produto.</div>';
+    }
+}
+
 function closeProductCustomizationModal() {
     const modal = document.getElementById('manualItemCustomizationModal');
     if (!modal) return;
     modal.style.opacity = '0';
     modal.style.pointerEvents = 'none';
-    setTimeout(() => modal.classList.add('display-none'), 150);
+    setTimeout(() => {
+        modal.classList.add('display-none');
+        manualConfiguredProduct = null;
+        manualConfiguredSelections = {};
+        manualConfiguredQuantity = 1;
+        tempCustomizingProduct = null;
+    }, 150);
 }
 
 function changeCustomizingQty(delta) {
+    if (manualConfiguredProduct && manualConfiguredProduct.optionGroups && manualConfiguredProduct.optionGroups.length > 0) {
+        let newQty = manualConfiguredQuantity + delta;
+        if (newQty < 1) newQty = 1;
+        manualConfiguredQuantity = newQty;
+        const qtyInput = document.getElementById('customModalItemQty');
+        if (qtyInput) qtyInput.value = newQty;
+        updateManualConfiguredPricePreview();
+        return;
+    }
+
     if (!tempCustomizingProduct) return;
     let newQty = (tempCustomizingProduct.quantity || 1) + delta;
     if (newQty < 1) newQty = 1;
@@ -634,6 +1092,47 @@ function updateCustomizingItemSubtotal() {
 }
 
 function confirmAddCustomizedProduct() {
+    // Se for item configurado via PizzaEngine (Pizzas ou itens com optionGroups)
+    if (manualConfiguredProduct && manualConfiguredProduct.optionGroups && manualConfiguredProduct.optionGroups.length > 0) {
+        if (typeof PizzaEngine === 'undefined') {
+            if (typeof showToast === 'function') showToast('Motor de Pizzas não carregado.', 'error');
+            return;
+        }
+
+        const notesInput = document.getElementById('customModalItemNotes');
+        const comment = notesInput ? notesInput.value.trim() : manualConfiguredNotes;
+
+        const res = PizzaEngine.buildConfiguredItem(
+            manualConfiguredProduct,
+            manualConfiguredSelections,
+            comment,
+            manualConfiguredQuantity
+        );
+
+        if (!res.success) {
+            if (typeof showToast === 'function') {
+                showToast(res.error || 'Verifique as opções da pizza.', 'warning');
+            }
+            const alertBox = document.getElementById('customModalValidationAlert');
+            const alertMsg = document.getElementById('customModalValidationMsg');
+            if (alertBox && alertMsg) {
+                alertMsg.textContent = res.error || 'Selecione todos os campos obrigatórios.';
+                alertBox.classList.remove('display-none');
+            }
+            return;
+        }
+
+        manualOrderState.cart.push(res.item);
+        closeProductCustomizationModal();
+        updateManualOrderCartUI();
+
+        if (typeof showToast === 'function') {
+            showToast(`${res.item.quantity}x ${res.item.name} adicionada ao pedido!`, 'success');
+        }
+        return;
+    }
+
+    // Caso simples de produto padrão
     if (!tempCustomizingProduct) return;
 
     const notesInput = document.getElementById('customModalItemNotes');
@@ -682,12 +1181,38 @@ function updateManualOrderCartUI() {
             const itemRow = document.createElement('div');
             itemRow.className = 'manual-cart-item-row';
 
-            const adicionaisText = (item.adicionais && item.adicionais.length > 0)
-                ? `<div class="manual-cart-item-adds">+ ${item.adicionais.map(a => a.name).join(', ')}</div>`
-                : '';
+            let detailsHTML = '';
 
-            const notesText = item.notes
-                ? `<div class="manual-cart-item-notes"><strong style="color: #f5a623;">Obs:</strong> "${item.notes}"</div>`
+            // Formatação completa e detalhada para pizzas
+            if (item.type === 'pizza') {
+                let flavorsText = '';
+                if (item.pizza && Array.isArray(item.pizza.flavors) && item.pizza.flavors.length > 0) {
+                    flavorsText = item.pizza.flavors.map(f => (f.fraction && f.fraction !== '1/1' && f.fraction !== '1') ? `${f.fraction} ${f.name}` : f.name).join(' + ');
+                } else if (Array.isArray(item.flavorNames) && item.flavorNames.length > 0) {
+                    flavorsText = item.flavorNames.join(' + ');
+                } else if (Array.isArray(item.selections)) {
+                    const flavs = item.selections.filter(s => s.groupId !== 'crust' && !s.groupTitle.toLowerCase().includes('preferência'));
+                    if (flavs.length > 0) flavorsText = flavs.map(f => (f.fraction ? `${f.fraction} ` : '') + f.name).join(' + ');
+                }
+
+                const crustObj = (item.pizza && item.pizza.crust) || item.border;
+                const borderText = (crustObj && crustObj.name) ? crustObj.name : (item.borderName || '');
+
+                if (flavorsText) {
+                    detailsHTML += `<div class="manual-cart-pizza-flavors"><span>🍕</span><span>${flavorsText}</span></div>`;
+                }
+                if (borderText && !borderText.toLowerCase().includes('sem borda') && !borderText.toLowerCase().includes('borda tradicional')) {
+                    const bPrice = Number(crustObj?.price || item.borderPrice || 0);
+                    const bPriceTxt = bPrice > 0 ? ` (+ R$ ${bPrice.toFixed(2).replace('.', ',')})` : '';
+                    detailsHTML += `<div class="manual-cart-pizza-border"><span>🧀</span><span>Borda: ${borderText}${bPriceTxt}</span></div>`;
+                }
+            } else if (item.adicionais && item.adicionais.length > 0) {
+                detailsHTML += `<div class="manual-cart-item-adds">+ ${item.adicionais.map(a => a.name).join(', ')}</div>`;
+            }
+
+            const itemComment = item.comment || item.notes || '';
+            const notesText = itemComment
+                ? `<div class="manual-cart-item-notes"><strong style="color: #f5a623;">Obs:</strong> "${itemComment}"</div>`
                 : '';
 
             itemRow.innerHTML = `
@@ -696,7 +1221,7 @@ function updateManualOrderCartUI() {
                         <span class="manual-cart-item-name">${item.name}</span>
                         <span class="manual-cart-item-price">R$ ${Number(item.totalPrice || 0).toFixed(2).replace('.', ',')}</span>
                     </div>
-                    ${adicionaisText}
+                    ${detailsHTML}
                     ${notesText}
                 </div>
                 <div class="manual-cart-item-actions">

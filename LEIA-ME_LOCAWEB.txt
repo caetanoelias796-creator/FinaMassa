@@ -1,0 +1,66 @@
+﻿================================================================================
+          ROLOFF LANCHES - GUIA PASSO A PASSO DE PUBLICACAO NA LOCAWEB
+================================================================================
+
+Este pacote contem todos os arquivos do sistema Roloff Lanches prontos e 
+otimizados para rodar na hospedagem da Locaweb (com PWA, SSL e cache ativados).
+
+--------------------------------------------------------------------------------
+1. COMO ENVIAR PARA A LOCAWEB (VIA GERENCIADOR DE ARQUIVOS / CPANEL)
+--------------------------------------------------------------------------------
+Passo 1:
+- Acesse o painel da Locaweb: https://paineldehospedagem.locaweb.com.br
+- Entre na administracao da sua hospedagem / cPanel.
+
+Passo 2:
+- Abra o "Gerenciador de Arquivos" (File Manager).
+- Navegue ate a pasta principal do seu site: "public_html" 
+  (ou a pasta do seu dominio/subdominio).
+
+Passo 3:
+- Se houver algum arquivo padrao de boas-vindas da Locaweb (ex: index.html antigo),
+  apague ou faca backup dele.
+
+Passo 4:
+- Clique no botao "Enviar" / "Upload" no topo do Gerenciador de Arquivos.
+- Selecione o arquivo: Roloff_Lanches_Deploy_Locaweb.zip
+
+Passo 5:
+- Quando o upload terminar, clique com o botao direito no arquivo zip dentro da pasta 
+  public_html e escolha "Extrair" / "Descompactar" (Extract).
+- Extraia diretamente em "public_html".
+- Apos extrair, voce pode excluir o arquivo .zip da hospedagem.
+
+--------------------------------------------------------------------------------
+2. COMO ENVIAR VIA FTP (FILEZILLA / WINSCP) - OPCAO ALTERNATIVA
+--------------------------------------------------------------------------------
+- Abra seu cliente FTP (FileZilla) e conecte com seus dados da Locaweb.
+- Abra a pasta "public_html" no servidor.
+- Descompacte o zip no seu computador e envie todos os arquivos e pastas para 
+  dentro de "public_html".
+
+--------------------------------------------------------------------------------
+3. LINKS DE ACESSO DO SISTEMA APOS A PUBLICACAO
+--------------------------------------------------------------------------------
+- Cardapio Digital & Delivery (Clientes):
+  https://seudominio.com.br/
+
+- Painel Administrativo (Gerencia / Cozinha / Caixa):
+  https://seudominio.com.br/painel
+
+- Modulo do Garcom (Mesas / Pedidos Internos):
+  https://seudominio.com.br/garcom
+
+--------------------------------------------------------------------------------
+4. RECURSOS INCLUSOS NESTE PACOTE
+--------------------------------------------------------------------------------
+- Arquivo .htaccess configurado com:
+  * Forcamento de conexao segura HTTPS / SSL
+  * Regras anti-cache para sw.js e manifest.json (atualizacoes chegam na hora aos clientes)
+  * Cache otimizado de imagens e fontes (carregamento ultra rapido)
+  * Compressao GZIP ativada
+  * Charset UTF-8 ativo (evita erros em acentos: c, a, e)
+- PWA Completo (Aplicativo instalavel no Android e iOS)
+- Firebase Realtime Database integrado e sincronizado em tempo real
+- Pasta "dados/" com backups do cardapio (menu.json) e regras de seguranca do Firebase.
+================================================================================

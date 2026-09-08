@@ -1,64 +1,12 @@
-﻿/* ==========================================================================
-   Fina Massa Pizzaria - MÃ³dulo GarÃ§om & Atendimento de SalÃ£o
-   Identidade Visual: BordÃ´ (#74112B) + Dourado (#DCA744) + Branco (#FFFFFF / #FAF8F5)
+/* ==========================================================================
+   Fina Massa Pizzaria - Módulo Garçom & Atendimento de Salão
+   Identidade Visual: Bordô (#74112B) + Dourado (#DCA744) + Branco (#FFFFFF / #FAF8F5)
    ========================================================================== */
 
+@import url('../branding-theme.css');
+
 :root {
-    /* Cores Principais do Logo */
-    --primary: #74112B;               /* BordÃ´ / Vinho Nobre */
-    --primary-hover: #8E1635;         /* BordÃ´ mais claro ao interagir */
-    --primary-dark: #530A1D;          /* BordÃ´ profundo para sombras e contrastes */
-    --primary-light: rgba(116, 17, 43, 0.08); /* Fundo suave para destaques */
-    --primary-gradient: linear-gradient(135deg, #8E1635 0%, #74112B 100%);
-    
-    /* Dourado / Amarelo Ouro de Destaque */
-    --accent-gold: #DCA744;           /* Ouro quente do lettering */
-    --accent-gold-hover: #E5B654;
-    --accent-gold-dark: #B8861B;
-    --accent-gold-light: rgba(220, 167, 68, 0.16);
-    --gold-gradient: linear-gradient(135deg, #F3C669 0%, #DCA744 100%);
-    
-    /* Status & Indicadores */
-    --accent-green: #2E7D32;
-    --accent-green-light: rgba(46, 125, 50, 0.12);
-    --status-red: #C62828;
-    --status-red-light: rgba(198, 40, 40, 0.12);
-    --accent-blue: #1976D2;
-    
-    /* Fundos & SuperfÃ­cies (Branco & Tons Claros de Respiro) */
-    --bg-main: #FAF8F5;               /* Branco marfim / suave */
-    --bg-card: #FFFFFF;               /* Branco puro para os cards */
-    --bg-surface: #F5EFEB;            /* SuperfÃ­cie secundÃ¡ria sutil */
-    --bg-input: #FFFFFF;              /* Fundo de campos e inputs */
-    --bg-drawer: #FFFFFF;
-    
-    /* Tipografia & Textos */
-    --text-main: #2C050F;             /* Vinho-preto profundo para leitura nÃ­tida */
-    --text-body: #4A3B3E;             /* Texto de parÃ¡grafos e detalhes */
-    --text-muted: #7A696D;            /* Texto secundÃ¡rio e descriÃ§Ãµes */
-    --text-light: #A8989C;            /* Textos sutis e placeholders */
-    --text-white: #FFFFFF;
-    
-    /* Bordas & Sombras */
-    --border-color: rgba(116, 17, 43, 0.10);
-    --border-gold: rgba(220, 167, 68, 0.35);
     --border-focus: var(--primary);
-    --glass-bg: rgba(255, 255, 255, 0.95);
-    --glass-border: rgba(116, 17, 43, 0.08);
-    
-    /* Estrutura & Raios */
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 18px;
-    --radius-xl: 24px;
-    --radius-full: 9999px;
-    
-    /* Sombras */
-    --shadow-sm: 0 2px 8px rgba(74, 11, 28, 0.04);
-    --shadow-md: 0 6px 20px rgba(74, 11, 28, 0.07);
-    --shadow-lg: 0 14px 36px rgba(74, 11, 28, 0.12);
-    
-    --transition: all 0.22s cubic-bezier(0.2, 0, 0, 1);
 }
 
 /* ==========================================================================

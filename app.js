@@ -49,7 +49,7 @@ const DEFAULT_MENU_FALLBACK = {
     "settings": {
         "companyName": "Fina Massa Pizzaria",
         "pixKey": "",
-        "slogan": "Pizzas Artesanais | Delivery & SalÃ£o",
+        "slogan": "Mais que Pizza, é Tradição!",
         "whatsapp": "",
         "whatsappFormatted": "",
         "address": "",
@@ -279,17 +279,20 @@ function resolveProductImage(item, categoryKey) {
     if (item && item.image && typeof item.image === 'string' && item.image.trim() !== '') {
         return item.image;
     }
-    if (categoryKey === 'pizzas_salgadas') {
+    if (categoryKey === 'pizzas_tradicionais' || categoryKey === 'pizzas_salgadas') {
         return 'assets/pizza_hero.png';
     }
+    if (categoryKey === 'pizzas_especiais') {
+        return 'assets/pizzas/especiais/pizza_especial.jpg';
+    }
     if (categoryKey === 'pizzas_doces') {
-        return 'assets/gourmet_doce_morango.png';
+        return 'assets/pizzas/doces/pizza_doce_nutella.jpg';
     }
     if (categoryKey === 'calzones') {
-        return 'assets/pizza_media.jpg';
+        return 'assets/calzones/calzone_artesanal.jpg';
     }
     if (categoryKey === 'bebidas') {
-        return 'assets/gourmet_bebida.png';
+        return 'assets/bebidas/coca_2l.jpg';
     }
     return 'assets/pizza_hero.png';
 }
@@ -984,7 +987,7 @@ function renderDynamicOptionGroups(product) {
         (group.options || []).forEach(opt => {
             const optPrice = Number(opt.price || 0);
             const priceLabel = optPrice > 0 
-                ? `<strong style="font-size: 13px; color: var(--primary, #74112B); white-space: nowrap;">+ R$ ${optPrice.toFixed(2).replace('.', ',')}</strong>` 
+                ? `<strong style="font-size: 13px; color: var(--primary, #F5A623); white-space: nowrap;">+ R$ ${optPrice.toFixed(2).replace('.', ',')}</strong>` 
                 : '<span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Incluso</span>';
 
             const optRow = document.createElement('div');
@@ -995,26 +998,26 @@ function renderDynamicOptionGroups(product) {
             optRow.style.display = 'flex';
             optRow.style.alignItems = 'center';
             optRow.style.justifyContent = 'space-between';
-            optRow.style.padding = '10px 12px';
-            optRow.style.border = '1px solid var(--border-color, #eee)';
-            optRow.style.borderRadius = '8px';
+            optRow.style.padding = '12px 14px';
+            optRow.style.border = '1px solid var(--border-color)';
+            optRow.style.borderRadius = '10px';
             optRow.style.cursor = 'pointer';
-            optRow.style.background = '#fff';
-            optRow.style.transition = 'all 0.15s ease';
+            optRow.style.background = 'var(--bg-surface)';
+            optRow.style.transition = 'all 0.18s ease';
 
             const inputType = isSingle ? 'radio' : 'checkbox';
             const inputName = `opt_group_${group.id}`;
             const imgHTML = opt.image 
-                ? `<img src="${opt.image}" alt="${opt.name}" loading="lazy" style="width: 46px; height: 46px; object-fit: cover; border-radius: 8px; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.12);" onerror="this.style.display='none'">` 
+                ? `<img src="${opt.image}" alt="${opt.name}" loading="lazy" style="width: 48px; height: 48px; object-fit: cover; border-radius: 8px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.4);" onerror="this.style.display='none'">` 
                 : '';
 
             optRow.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 10px; flex: 1; padding-right: 8px; pointer-events: none;">
-                    <input type="${inputType}" id="opt_input_${group.id}_${opt.id}" name="${inputName}" value="${opt.id}" style="margin-top: 0; accent-color: var(--primary, #74112B); flex-shrink: 0; pointer-events: none;">
+                    <input type="${inputType}" id="opt_input_${group.id}_${opt.id}" name="${inputName}" value="${opt.id}" style="margin-top: 0; accent-color: var(--primary, #F5A623); flex-shrink: 0; pointer-events: none;">
                     ${imgHTML}
                     <div>
-                        <div style="font-weight: 600; font-size: 14px; color: var(--text-color, #222);">${opt.name}</div>
-                        ${opt.ingredients ? `<div style="font-size: 12px; color: var(--text-muted); line-height: 1.3; margin-top: 2px;">${opt.ingredients}</div>` : ''}
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-main);">${opt.name}</div>
+                        ${opt.ingredients ? `<div style="font-size: 12px; color: var(--text-muted); line-height: 1.35; margin-top: 2px;">${opt.ingredients}</div>` : ''}
                     </div>
                 </div>
                 <div style="pointer-events: none;">${priceLabel}</div>
@@ -1059,8 +1062,9 @@ function updateOptionGroupUI(groupId) {
             input.checked = isSelected;
         }
         if (row) {
-            row.style.border = isSelected ? '1.5px solid var(--primary, #74112B)' : '1px solid var(--border-color, #eee)';
-            row.style.background = isSelected ? 'rgba(116, 17, 43, 0.04)' : '#fff';
+            row.style.border = isSelected ? '1.5px solid var(--primary, #F5A623)' : '1px solid var(--border-color)';
+            row.style.background = isSelected ? 'rgba(245, 166, 35, 0.12)' : 'var(--bg-surface)';
+            row.style.boxShadow = isSelected ? '0 0 12px rgba(245, 166, 35, 0.25)' : 'none';
             row.setAttribute('aria-checked', isSelected ? 'true' : 'false');
         }
     });
@@ -1071,14 +1075,16 @@ function updateOptionGroupUI(groupId) {
     if (badge) {
         if (selections.length > 0) {
             badge.innerText = isSingle ? '✓ Selecionado' : `✓ ${selections.length}/${max}`;
-            badge.style.color = '#2e7d32';
-            badge.style.background = 'rgba(46, 125, 50, 0.1)';
+            badge.style.color = '#2ED573';
+            badge.style.background = 'rgba(46, 213, 115, 0.15)';
+            badge.style.border = '1px solid rgba(46, 213, 115, 0.3)';
         } else {
             const badgeText = group.required ? (isSingle ? 'Obrigatório (1)' : `Obrigatório (${min})`) : 'Opcional';
-            const badgeColor = group.required ? 'var(--primary, #74112B)' : 'var(--text-muted, #888)';
+            const badgeColor = group.required ? 'var(--primary, #F5A623)' : 'var(--text-muted)';
             badge.innerText = badgeText;
             badge.style.color = badgeColor;
-            badge.style.background = 'rgba(0,0,0,0.06)';
+            badge.style.background = 'rgba(255,255,255,0.06)';
+            badge.style.border = '1px solid var(--border-color)';
         }
     }
 
@@ -1425,16 +1431,19 @@ function updateCartUI() {
                     ${notesHTML}
                     <span class="cart-item-price">R$ ${item.totalPrice.toFixed(2).replace('.', ',')}${unitPriceHTML}</span>
                 </div>
-                <div class="cart-item-actions">
+                <div class="cart-item-actions" style="display: flex; align-items: center; gap: 8px;">
                     <div class="qty-stepper">
-                        <button type="button" onclick="updateCartItemQty('${item.cartItemId}', -1)">
+                        <button type="button" onclick="updateCartItemQty('${item.cartItemId}', -1)" title="Diminuir">
                             <span class="material-symbols-rounded">remove</span>
                         </button>
                         <span>${item.quantity}</span>
-                        <button type="button" onclick="updateCartItemQty('${item.cartItemId}', 1)">
+                        <button type="button" onclick="updateCartItemQty('${item.cartItemId}', 1)" title="Aumentar">
                             <span class="material-symbols-rounded">add</span>
                         </button>
                     </div>
+                    <button type="button" class="btn-remove-item" onclick="removeCartItem('${item.cartItemId}')" title="Remover item" style="background: transparent; border: none; color: var(--status-red, #ff4757); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: var(--transition);">
+                        <span class="material-symbols-rounded" style="font-size: 19px;">delete</span>
+                    </button>
                 </div>
             `;
 
@@ -1450,9 +1459,10 @@ function updateCartUI() {
     let total = subtotal + deliveryFee;
 
     if (subtotalElem) subtotalElem.innerText = `R$ ${subtotal.toFixed(2)}`;
-    if (deliveryElem) deliveryElem.innerText = deliveryFee === 0 ? 'GrÃ¡tis' : `R$ ${deliveryFee.toFixed(2)}`;
+    if (deliveryElem) deliveryElem.innerText = deliveryFee === 0 ? 'Grátis' : `R$ ${deliveryFee.toFixed(2)}`;
     if (totalElem) totalElem.innerText = `R$ ${total.toFixed(2)}`;
 }
+
 function updateCartItemQty(cartItemId, delta) {
     const index = cart.findIndex(i => i.cartItemId === cartItemId);
     if (index === -1) return;
@@ -1464,6 +1474,15 @@ function updateCartItemQty(cartItemId, delta) {
         cart[index].totalPrice = cart[index].singlePrice * cart[index].quantity;
     }
 
+    saveCartToStorage();
+    updateCartUI();
+}
+
+function removeCartItem(cartItemId) {
+    const index = cart.findIndex(i => i.cartItemId === cartItemId);
+    if (index === -1) return;
+
+    cart.splice(index, 1);
     saveCartToStorage();
     updateCartUI();
 }

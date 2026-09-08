@@ -1,62 +1,12 @@
-﻿/* ==========================================================================
-   Fina Massa Pizzaria - CardÃ¡pio do Cliente (Client Menu Design System)
-   Identidade Visual: BordÃ´ (#74112B) + Dourado (#DCA744) + Branco (#FFFFFF / #FAF8F5)
+/* ==========================================================================
+   Fina Massa Pizzaria - Cardápio do Cliente (Client Menu Design System)
+   Identidade Visual: Bordô (#74112B) + Dourado (#DCA744) + Branco (#FFFFFF / #FAF8F5)
    ========================================================================== */
 
+@import url('branding-theme.css');
+
 :root {
-    /* Cores Principais do Logo */
-    --primary: #74112B;               /* BordÃ´ / Vinho Nobre */
-    --primary-hover: #8E1635;         /* BordÃ´ mais claro ao interagir */
-    --primary-dark: #530A1D;          /* BordÃ´ profundo para sombras e contrastes */
-    --primary-light: rgba(116, 17, 43, 0.08); /* Fundo suave para destaques */
-    --primary-gradient: linear-gradient(135deg, #8E1635 0%, #74112B 100%);
-    
-    /* Dourado / Amarelo Ouro de Destaque */
-    --accent-gold: #DCA744;           /* Ouro quente do lettering */
-    --accent-gold-hover: #E5B654;
-    --accent-gold-dark: #B8861B;
-    --accent-gold-light: rgba(220, 167, 68, 0.16);
-    --gold-gradient: linear-gradient(135deg, #F3C669 0%, #DCA744 100%);
-    
-    /* Verdes de Sucesso & Status */
-    --accent-green: #2E7D32;
-    --accent-green-light: rgba(46, 125, 50, 0.12);
-    --whatsapp-green: #25D366;
-    
-    /* Fundos & SuperfÃ­cies (Branco & Tons Claros de Respiro) */
-    --bg-main: #FAF8F5;               /* Branco marfim / suave */
-    --bg-card: #FFFFFF;               /* Branco puro para os cards */
-    --bg-surface: #F5EFEB;            /* SuperfÃ­cie secundÃ¡ria sutil */
-    --bg-input: #FFFFFF;              /* Fundo de campos e inputs */
-    --bg-drawer: #FFFFFF;
-    
-    /* Tipografia & Textos */
-    --text-main: #2C050F;             /* Vinho-preto profundo para leitura nÃ­tida */
-    --text-body: #4A3B3E;             /* Texto de parÃ¡grafos e detalhes */
-    --text-muted: #7A696D;            /* Texto secundÃ¡rio e descriÃ§Ãµes */
-    --text-light: #A8989C;            /* Textos sutis e placeholders */
-    --text-white: #FFFFFF;
-    
-    /* Bordas & Sombras */
-    --border-color: rgba(116, 17, 43, 0.10);
-    --border-gold: rgba(220, 167, 68, 0.35);
-    --glass-bg: rgba(255, 255, 255, 0.94);
-    --glass-border: rgba(116, 17, 43, 0.08);
-    
-    /* Estrutura & Raios */
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
-    --radius-xl: 28px;
-    --radius-pill: 9999px;
-    --transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
     --container-width: 1140px;
-    
-    /* Sombras Elegantes & Suaves */
-    --shadow-sm: 0 2px 8px rgba(74, 11, 28, 0.04);
-    --shadow-md: 0 6px 20px rgba(74, 11, 28, 0.07);
-    --shadow-lg: 0 14px 36px rgba(74, 11, 28, 0.12);
-    --shadow-gold: 0 4px 18px rgba(220, 167, 68, 0.35);
 }
 
 /* ==========================================================================
@@ -151,18 +101,26 @@ a {
 /* ==========================================================================
    1. CABEÃ‡ALHO & HERO SECTION
    ========================================================================== */
+/* ==========================================================================
+   1. CABEÇALHO & HERO SECTION (Estilo Oficial Fina Massa Pizzaria)
+   ========================================================================== */
 .hero-section {
     position: relative;
-    background-color: #FFFFFF;
-    background-image: radial-gradient(circle at 50% 0%, rgba(220, 167, 68, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
-    border-bottom: 1px solid var(--border-color);
-    padding: 24px 0 20px;
+    background-color: var(--bg-main);
+    background-image: linear-gradient(180deg, rgba(11, 12, 14, 0.75) 0%, rgba(11, 12, 14, 0.95) 100%), url('assets/hero_banner.jpg');
+    background-size: cover;
+    background-position: center 30%;
+    border-bottom: 1px solid var(--border-gold);
+    padding: 32px 0 26px;
     text-align: center;
-    box-shadow: 0 2px 14px rgba(74, 11, 28, 0.03);
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8);
 }
 
 .hero-overlay {
-    display: none; /* MantÃ©m fundo branco e limpo */
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 30%, rgba(245, 166, 35, 0.08) 0%, rgba(11, 12, 14, 0.85) 80%);
+    pointer-events: none;
 }
 
 .hero-content {
@@ -180,7 +138,7 @@ a {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     width: 100%;
 }
 
@@ -188,20 +146,21 @@ a {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 14px;
-    background: var(--accent-green-light);
+    padding: 6px 16px;
+    background: rgba(46, 213, 115, 0.12);
     color: var(--accent-green);
-    border: 1px solid rgba(46, 125, 50, 0.25);
+    border: 1px solid rgba(46, 213, 115, 0.35);
     border-radius: var(--radius-pill);
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.3px;
+    backdrop-filter: blur(8px);
 }
 
 .status-badge.closed {
-    background: rgba(198, 40, 40, 0.1);
-    color: #C62828;
-    border-color: rgba(198, 40, 40, 0.25);
+    background: rgba(255, 71, 87, 0.12);
+    color: var(--status-red);
+    border-color: rgba(255, 71, 87, 0.35);
 }
 
 .status-badge .dot {
@@ -209,10 +168,12 @@ a {
     height: 8px;
     background-color: var(--accent-green);
     border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent-green);
 }
 
 .status-badge.closed .dot {
-    background-color: #C62828;
+    background-color: var(--status-red);
+    box-shadow: 0 0 10px var(--status-red);
 }
 
 .pizzeria-brand-wrapper,
@@ -220,70 +181,76 @@ a {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 4px;
+    gap: 12px;
+    margin-bottom: 6px;
 }
 
 .pizzeria-logo,
 .brand-logo {
-    width: 92px;
-    height: 92px;
+    width: 105px;
+    height: 105px;
     border-radius: 50%;
     border: 3px solid var(--accent-gold);
-    box-shadow: 0 6px 20px rgba(220, 167, 68, 0.25), 0 2px 8px rgba(74, 11, 28, 0.08);
-    background-color: #FFFFFF;
+    box-shadow: 0 0 25px rgba(245, 166, 35, 0.4), 0 6px 18px rgba(0, 0, 0, 0.6);
+    background-color: #0B0C0E;
     object-fit: contain;
-    padding: 3px;
-    transition: transform 0.3s ease;
+    padding: 2px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .pizzeria-logo:hover,
 .brand-logo:hover {
-    transform: scale(1.04) rotate(1deg);
+    transform: scale(1.05);
+    box-shadow: 0 0 35px rgba(245, 166, 35, 0.6);
 }
 
 .pizzeria-title,
 .brand-title {
     font-family: 'Outfit', sans-serif;
-    font-size: 32px;
-    font-weight: 800;
-    line-height: 1.15;
+    font-size: 34px;
+    font-weight: 900;
+    line-height: 1.1;
     margin: 0;
-    letter-spacing: -0.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
     color: var(--primary);
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 166, 35, 0.3);
 }
 
 .pizzeria-subtitle,
 .brand-subtitle {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 14px;
-    font-weight: 500;
+    font-size: 15px;
+    color: var(--text-body);
+    margin-bottom: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 .hero-slogan {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
 }
 
 .hero-slogan .tag {
-    padding: 5px 12px;
-    background: var(--bg-surface);
+    padding: 6px 14px;
+    background: rgba(20, 22, 27, 0.85);
     color: var(--text-body);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-color-light);
     border-radius: var(--radius-pill);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.3px;
+    backdrop-filter: blur(6px);
 }
 
 .hero-slogan .tag.bg-green {
-    background: var(--primary-light);
+    background: rgba(245, 166, 35, 0.12);
     color: var(--primary);
-    border-color: rgba(116, 17, 43, 0.15);
+    border-color: var(--border-gold);
 }
 
 .promo-tag-btn {
@@ -313,16 +280,16 @@ a {
     background: var(--glass-bg);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--glass-border);
-    box-shadow: 0 4px 16px rgba(74, 11, 28, 0.04);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
 .sticky-nav-wrapper {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding-top: 12px;
+    padding-bottom: 12px;
     gap: 16px;
 }
 
@@ -358,17 +325,17 @@ a {
 }
 
 .nav-link:hover {
-    background: rgba(116, 17, 43, 0.08);
+    background: var(--primary-light);
     color: var(--primary);
-    border-color: rgba(116, 17, 43, 0.2);
+    border-color: var(--border-gold);
 }
 
 .nav-link.active {
     background: var(--primary-gradient);
-    color: #FFFFFF;
-    border-color: var(--accent-gold);
-    box-shadow: 0 4px 14px rgba(116, 17, 43, 0.28);
-    font-weight: 700;
+    color: var(--text-on-gold);
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(245, 166, 35, 0.4);
+    font-weight: 800;
 }
 
 .search-box {
@@ -402,8 +369,8 @@ a {
 
 .search-box input:focus {
     border-color: var(--primary);
-    background-color: #FFFFFF;
-    box-shadow: 0 0 0 3px rgba(116, 17, 43, 0.12);
+    background-color: var(--bg-surface);
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2);
 }
 
 /* ==========================================================================
@@ -473,7 +440,7 @@ a {
     position: relative;
     height: 180px;
     overflow: hidden;
-    background: #F0EAE8;
+    background: #101216;
 }
 
 .product-image-wrapper img {
@@ -484,7 +451,7 @@ a {
 }
 
 .menu-item-card:hover .product-image-wrapper img {
-    transform: scale(1.05);
+    transform: scale(1.06);
 }
 
 .product-badge {
@@ -492,14 +459,14 @@ a {
     top: 10px;
     left: 10px;
     background: var(--gold-gradient);
-    color: #2C050F;
-    padding: 3px 9px;
+    color: var(--text-on-gold);
+    padding: 4px 10px;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 900;
     text-transform: uppercase;
     border-radius: var(--radius-sm);
-    letter-spacing: 0.4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .product-details {
@@ -511,7 +478,7 @@ a {
 
 .product-title {
     font-family: 'Outfit', sans-serif;
-    font-size: 16.5px;
+    font-size: 17px;
     font-weight: 800;
     color: var(--text-main);
     margin-bottom: 6px;
@@ -537,26 +504,26 @@ a {
     justify-content: space-between;
     margin-top: auto;
     padding-top: 12px;
-    border-top: 1px dashed rgba(116, 17, 43, 0.10);
+    border-top: 1px dashed rgba(255, 255, 255, 0.10);
     gap: 8px;
 }
 
 .product-price-wrapper {
     display: flex;
     align-items: baseline;
-    gap: 3px;
+    gap: 4px;
 }
 
 .product-price-prefix {
     font-size: 12px;
     font-weight: 700;
-    color: var(--accent-gold-dark);
+    color: var(--primary);
 }
 
 .product-price {
-    font-size: 20px;
+    font-size: 21px;
     font-weight: 900;
-    color: var(--primary);
+    color: #FFFFFF;
     font-family: 'Outfit', sans-serif;
     letter-spacing: -0.4px;
 }
@@ -580,14 +547,15 @@ a {
 
 .btn-primary {
     background: var(--primary-gradient);
-    color: #FFFFFF;
-    box-shadow: 0 4px 12px rgba(116, 17, 43, 0.25);
+    color: var(--text-on-gold);
+    box-shadow: 0 4px 16px rgba(245, 166, 35, 0.35);
+    font-weight: 800;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #9E1A3C 0%, #80122E 100%);
+    background: linear-gradient(135deg, #FFAF38 0%, #E69516 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(116, 17, 43, 0.35);
+    box-shadow: 0 6px 22px rgba(245, 166, 35, 0.5);
 }
 
 .btn-sm {
@@ -705,8 +673,8 @@ a {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(44, 5, 15, 0.6);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
     z-index: 10000;
     opacity: 0;
     pointer-events: none;
@@ -726,8 +694,8 @@ a {
     max-width: 420px;
     height: 100%;
     background-color: var(--bg-drawer);
-    border-left: 1px solid var(--border-color);
-    box-shadow: var(--shadow-lg);
+    border-left: 1px solid var(--border-color-light);
+    box-shadow: -10px 0 35px rgba(0, 0, 0, 0.8);
     z-index: 10001;
     display: flex;
     flex-direction: column;
@@ -744,7 +712,7 @@ a {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: #FFFFFF;
+    background-color: var(--bg-surface);
 }
 
 .cart-title-wrapper {
@@ -756,11 +724,11 @@ a {
 .cart-title-wrapper h2 {
     font-size: 18px;
     font-weight: 800;
-    color: var(--primary);
+    color: var(--text-main);
 }
 
 .cart-title-wrapper .material-symbols-rounded {
-    color: var(--accent-gold);
+    color: var(--primary);
     font-size: 24px;
 }
 
@@ -778,7 +746,7 @@ a {
 .cart-empty-state .empty-icon {
     font-size: 64px;
     margin-bottom: 12px;
-    color: rgba(116, 17, 43, 0.15);
+    color: rgba(245, 166, 35, 0.2);
 }
 
 .cart-empty-state .subtext {
@@ -833,7 +801,7 @@ a {
 .qty-stepper {
     display: inline-flex;
     align-items: center;
-    background: #FFFFFF;
+    background: var(--bg-input);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     padding: 2px;
@@ -858,21 +826,22 @@ a {
 
 .qty-stepper button:hover {
     background: var(--primary);
-    color: #FFFFFF;
+    color: var(--text-on-gold);
 }
 
 .qty-stepper span {
     font-size: 13px;
     font-weight: 700;
+    color: var(--text-main);
     min-width: 22px;
     text-align: center;
 }
 
 .cart-summary {
     padding: 20px;
-    background: #FFFFFF;
+    background: var(--bg-surface);
     border-top: 1px solid var(--border-color);
-    box-shadow: 0 -4px 16px rgba(74, 11, 28, 0.04);
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.4);
 }
 
 .summary-row {
@@ -933,8 +902,8 @@ a {
 }
 
 .modal-card {
-    background-color: #FFFFFF;
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-modal);
+    border: 1px solid var(--border-gold);
     border-radius: var(--radius-xl);
     width: 100%;
     max-width: 480px;
@@ -942,7 +911,7 @@ a {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9);
     position: relative;
     transform: translateY(20px);
     transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
@@ -955,7 +924,7 @@ a {
 .modal-header-image {
     position: relative;
     height: 200px;
-    background-color: #F0EAE8;
+    background-color: #101216;
 }
 
 .modal-header-image img {
@@ -969,30 +938,30 @@ a {
     bottom: 12px;
     left: 16px;
     background: var(--primary-gradient);
-    color: #FFFFFF;
-    padding: 4px 12px;
+    color: var(--text-on-gold);
+    padding: 4px 14px;
     border-radius: var(--radius-pill);
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 900;
     text-transform: uppercase;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 .modal-body {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 22px;
 }
 
 .modal-body h2 {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 800;
     color: var(--text-main);
     margin-bottom: 4px;
 }
 
 .customizer-desc {
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--text-muted);
     line-height: 1.45;
     margin-bottom: 20px;
@@ -1005,17 +974,17 @@ a {
 .section-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin-bottom: 12px;
 }
 
 .section-title .number {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     background-color: var(--primary);
-    color: #FFFFFF;
-    font-size: 11px;
-    font-weight: 800;
+    color: var(--text-on-gold);
+    font-size: 12px;
+    font-weight: 900;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1023,17 +992,18 @@ a {
 }
 
 .section-title h3 {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 800;
     color: var(--text-main);
 }
 
 .section-title .badge {
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 800;
     background: var(--bg-surface);
-    color: var(--text-muted);
-    padding: 2px 6px;
+    color: var(--primary);
+    border: 1px solid var(--border-gold);
+    padding: 2px 8px;
     border-radius: 4px;
     text-transform: uppercase;
 }
@@ -1042,38 +1012,40 @@ a {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
+    padding: 12px 14px;
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     margin-bottom: 8px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 500;
+    color: var(--text-body);
     transition: var(--transition);
     user-select: none;
 }
 
 .adicional-checkbox-row:hover {
-    background: rgba(116, 17, 43, 0.04);
-    border-color: rgba(116, 17, 43, 0.2);
+    background: var(--bg-card-hover);
+    border-color: var(--border-color-light);
 }
 
 .adicional-checkbox-row:has(input:checked) {
-    background: rgba(116, 17, 43, 0.06);
+    background: rgba(245, 166, 35, 0.10);
     border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(245, 166, 35, 0.15);
 }
 
 .adicional-checkbox-row input {
     accent-color: var(--primary);
-    width: 16px;
-    height: 16px;
+    width: 17px;
+    height: 17px;
     cursor: pointer;
 }
 
 .adicional-checkbox-row strong {
     color: var(--primary);
-    font-weight: 700;
+    font-weight: 800;
 }
 
 .form-group textarea {
@@ -1081,8 +1053,8 @@ a {
     background-color: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    padding: 10px 14px;
-    font-size: 13px;
+    padding: 12px 14px;
+    font-size: 13.5px;
     color: var(--text-main);
     outline: none;
     resize: none;
@@ -1091,8 +1063,8 @@ a {
 
 .form-group textarea:focus {
     border-color: var(--primary);
-    background-color: #FFFFFF;
-    box-shadow: 0 0 0 3px rgba(116, 17, 43, 0.1);
+    background-color: var(--bg-input);
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
 }
 
 .modal-footer {
@@ -1101,13 +1073,13 @@ a {
     display: flex;
     align-items: center;
     gap: 14px;
-    background-color: #FFFFFF;
+    background-color: var(--bg-surface);
 }
 
 .customizer-quantity {
     display: flex;
     align-items: center;
-    background: var(--bg-surface);
+    background: var(--bg-input);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 3px;
@@ -1131,12 +1103,13 @@ a {
 
 .btn-qty:hover {
     background: var(--primary);
-    color: #FFFFFF;
+    color: var(--text-on-gold);
 }
 
 .qty-number {
     font-size: 15px;
     font-weight: 800;
+    color: var(--text-main);
     padding: 0 12px;
     min-width: 32px;
     text-align: center;
@@ -1144,9 +1117,9 @@ a {
 
 .btn-add-order {
     flex-grow: 1;
-    min-height: 46px;
-    font-size: 14px;
-    font-weight: 700;
+    min-height: 48px;
+    font-size: 14.5px;
+    font-weight: 800;
     border-radius: var(--radius-md);
 }
 
@@ -1155,6 +1128,8 @@ a {
    ========================================================================== */
 .checkout-card {
     max-width: 520px;
+    background-color: var(--bg-modal);
+    border: 1px solid var(--border-gold);
 }
 
 .checkout-header {
@@ -1163,16 +1138,17 @@ a {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    background-color: var(--bg-surface);
 }
 
 .checkout-header h2 {
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 800;
     color: var(--primary);
 }
 
 .checkout-body {
-    padding: 20px;
+    padding: 22px;
     overflow-y: auto;
 }
 
@@ -1181,7 +1157,7 @@ a {
     background-color: var(--bg-surface);
     padding: 4px;
     border-radius: var(--radius-pill);
-    margin-bottom: 20px;
+    margin-bottom: 22px;
     border: 1px solid var(--border-color);
 }
 
@@ -1204,9 +1180,9 @@ a {
 
 .type-tab.active {
     background: var(--primary-gradient);
-    color: #FFFFFF;
-    font-weight: 700;
-    box-shadow: 0 2px 8px rgba(116, 17, 43, 0.25);
+    color: var(--text-on-gold);
+    font-weight: 800;
+    box-shadow: 0 2px 10px rgba(245, 166, 35, 0.35);
 }
 
 .checkout-section {
@@ -1214,8 +1190,8 @@ a {
 }
 
 .checkout-section h3 {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 13.5px;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--primary);
@@ -1248,7 +1224,7 @@ a {
 .form-group select {
     width: 100%;
     height: 44px;
-    background-color: var(--bg-surface);
+    background-color: var(--bg-input);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 0 14px;
@@ -1261,16 +1237,16 @@ a {
 .form-group input:focus,
 .form-group select:focus {
     border-color: var(--primary);
-    background-color: #FFFFFF;
-    box-shadow: 0 0 0 3px rgba(116, 17, 43, 0.1);
+    background-color: var(--bg-surface);
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2);
 }
 
 .btn-get-location {
     width: 100%;
     padding: 10px;
-    background: rgba(220, 167, 68, 0.15);
-    color: var(--accent-gold-dark);
-    border: 1px dashed var(--accent-gold);
+    background: rgba(245, 166, 35, 0.12);
+    color: var(--primary);
+    border: 1px dashed var(--primary);
     border-radius: var(--radius-md);
     font-size: 12px;
     font-weight: 700;
@@ -1283,7 +1259,7 @@ a {
 }
 
 .btn-get-location:hover {
-    background: rgba(220, 167, 68, 0.25);
+    background: rgba(245, 166, 35, 0.22);
 }
 
 .payment-options {
@@ -1322,9 +1298,10 @@ a {
 
 .payment-card input:checked + .payment-content {
     border-color: var(--primary);
-    background-color: var(--primary-light);
+    background-color: rgba(245, 166, 35, 0.12);
     color: var(--primary);
-    font-weight: 700;
+    font-weight: 800;
+    box-shadow: 0 0 12px rgba(245, 166, 35, 0.2);
 }
 
 .payment-content .material-symbols-rounded {
@@ -1353,7 +1330,7 @@ a {
 
 .checkout-total h4 {
     font-size: 22px;
-    font-weight: 800;
+    font-weight: 900;
     color: var(--primary);
     margin: 0;
 }
@@ -1376,12 +1353,12 @@ a {
 }
 
 /* ==========================================================================
-   9. RODAPÃ‰ (FOOTER)
+   9. RODAPÉ (FOOTER)
    ========================================================================== */
 .footer-section {
-    background-color: #FFFFFF;
-    border-top: 1px solid var(--border-color);
-    padding: 40px 0 20px;
+    background-color: #0E1014;
+    border-top: 1px solid var(--border-gold);
+    padding: 44px 0 24px;
     color: var(--text-muted);
 }
 
@@ -1394,10 +1371,11 @@ a {
 }
 
 .footer-brand h2 {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 800;
     color: var(--primary);
     margin-bottom: 4px;
+    letter-spacing: 0.5px;
 }
 
 .footer-info p {
@@ -1405,17 +1383,18 @@ a {
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
-    font-size: 13px;
+    font-size: 13.5px;
+    color: var(--text-body);
 }
 
 .footer-info .material-symbols-rounded {
-    color: var(--accent-gold-dark);
-    font-size: 18px;
+    color: var(--primary);
+    font-size: 19px;
 }
 
 .footer-bottom {
     border-top: 1px solid var(--border-color);
-    padding-top: 16px;
+    padding-top: 18px;
     font-size: 12px;
     color: var(--text-light);
 }
@@ -1430,12 +1409,12 @@ a {
     left: 0;
     width: 100%;
     background: var(--glass-bg);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-top: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-color);
     padding: 6px 12px max(6px, env(safe-area-inset-bottom));
     z-index: 8000;
-    box-shadow: 0 -4px 16px rgba(74, 11, 28, 0.06);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
     justify-content: space-around;
     align-items: center;
 }

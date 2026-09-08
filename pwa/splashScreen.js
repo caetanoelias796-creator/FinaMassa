@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Splash Screen - Fina Massa Pizzaria PWA
    ========================================================================== */
 
@@ -24,8 +24,8 @@ window.PWASplashScreen = {
         left: 0;
         width: 100vw;
         height: 100vh;
-        background-color: #121214;
-        background: radial-gradient(circle at center, #1e1e24 0%, #121214 100%);
+        background-color: #0B0C0E;
+        background: radial-gradient(circle at center, #181B22 0%, #0B0C0E 100%);
         z-index: 9999999;
         display: flex;
         flex-direction: column;
@@ -37,9 +37,9 @@ window.PWASplashScreen = {
       ">
         <style>
           @keyframes pwaPulseLogo {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 25px rgba(229, 57, 53, 0.6)); }
-            100% { transform: scale(0.95); opacity: 0.8; }
+            0% { transform: scale(0.96); opacity: 0.9; }
+            50% { transform: scale(1.04); opacity: 1; filter: drop-shadow(0 0 25px rgba(245, 166, 35, 0.65)); }
+            100% { transform: scale(0.96); opacity: 0.9; }
           }
           @keyframes pwaSpin {
             0% { transform: rotate(0deg); }
@@ -48,38 +48,42 @@ window.PWASplashScreen = {
         </style>
         
         <img src="assets/logo.png" alt="Fina Massa Pizzaria" style="
-          width: 110px;
-          height: 110px;
+          width: 120px;
+          height: 120px;
           border-radius: 50%;
           object-fit: contain;
           margin-bottom: 20px;
-          border: 3px solid #e53935;
-          animation: pwaPulseLogo 2s infinite ease-in-out;
+          border: 3px solid #F5A623;
+          box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
+          animation: pwaPulseLogo 2.5s infinite ease-in-out;
         ">
 
         <h1 style="
-          font-family: 'Playfair Display', Georgia, serif;
+          font-family: 'Outfit', sans-serif;
           font-size: 26px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
+          font-weight: 900;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
           margin: 0 0 6px 0;
-          color: #ffffff;
+          color: #F5A623;
+          text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
         ">Fina Massa Pizzaria</h1>
         
         <p style="
           font-size: 13px;
-          color: #a0a0a0;
+          color: #E2E4E9;
           margin: 0 0 32px 0;
-          letter-spacing: 1px;
+          letter-spacing: 1.5px;
           text-transform: uppercase;
-        ">Cardápio Digital & Delivery</p>
+          font-weight: 600;
+        ">Mais que Pizza, é Tradição!</p>
 
-        <!-- Spinner Elegante -->
+        <!-- Spinner Elegante Dourado -->
         <div style="
-          width: 36px;
-          height: 36px;
-          border: 3px solid rgba(229, 57, 53, 0.2);
-          border-top: 3px solid #e53935;
+          width: 38px;
+          height: 38px;
+          border: 3px solid rgba(245, 166, 35, 0.2);
+          border-top: 3px solid #F5A623;
           border-radius: 50%;
           animation: pwaSpin 0.8s linear infinite;
         "></div>

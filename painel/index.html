@@ -1190,9 +1190,10 @@
     <script src="../firebase-config.js"></script>
 
     <!-- Script File -->
+    <script src="../PizzaEngine.js?v=2"></script>
     <script src="painel.js?v=22"></script>
     <script src="customers-manager.js?v=1"></script>
-    <script src="manual-order.js?v=2"></script>
+    <script src="manual-order.js?v=3"></script>
 
     <!-- Modal Gerenciador de Mesas (Cadastrar, Ativar, Desativar, Excluir) -->
     <div class="modal-backdrop" id="tablesManagerModal" style="display: none;">
@@ -1375,9 +1376,15 @@
                                 <span class="material-symbols-rounded">restaurant_menu</span>
                                 <span>3. Escolher Produtos</span>
                             </label>
-                            <div class="manual-search-box">
-                                <span class="material-symbols-rounded">search</span>
-                                <input type="text" id="manualSearchProduct" placeholder="Buscar produto por nome..." oninput="handleManualSearchProduct(this.value)">
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <button type="button" class="btn-quick-pizza-builder" onclick="openQuickPizzaPicker()" title="Montar Pizza Meio a Meio ou Inteira">
+                                    <span class="material-symbols-rounded" style="font-size: 18px;">local_pizza</span>
+                                    <span>Montar Pizza</span>
+                                </button>
+                                <div class="manual-search-box">
+                                    <span class="material-symbols-rounded">search</span>
+                                    <input type="text" id="manualSearchProduct" placeholder="Buscar produto..." oninput="handleManualSearchProduct(this.value)">
+                                </div>
                             </div>
                         </div>
 
@@ -1508,48 +1515,98 @@
         </div>
     </div>
 
-    <!-- MODAL DE ADICIONAIS & OBSERVAÇÃO DO ITEM -->
-    <div class="modal-overlay display-none" id="manualItemCustomizationModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1300; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: var(--transition);">
+    <!-- MODAL DE ADICIONAIS & MONTAGEM DE PIZZA / PRODUTO -->
+    <div class="modal-overlay display-none" id="manualItemCustomizationModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1300; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: var(--transition);">
         <div class="modal-container manual-item-custom-container">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 id="customModalItemTitle" style="color: var(--text-main); font-size: 18px; margin: 0;">Nome do Item</h3>
-                    <span id="customModalBasePrice" style="color: #f5a623; font-weight: 700; font-size: 14px;">R$ 0,00</span>
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="customModalIconBadge" style="width: 42px; height: 42px; border-radius: 50%; background: rgba(245, 166, 35, 0.2); color: #f5a623; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <span class="material-symbols-rounded" style="font-size: 24px;">local_pizza</span>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <h3 id="customModalItemTitle" style="color: var(--text-main); font-size: 17px; margin: 0; font-weight: 800; font-family: var(--font-display);">Nome do Item</h3>
+                            <span id="customModalBadge" style="font-size: 11px; background: rgba(245, 166, 35, 0.15); color: #f5a623; border: 1px solid rgba(245, 166, 35, 0.4); padding: 2px 8px; border-radius: 12px; font-weight: 700;">8 Fatias</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                            <span id="customModalBasePrice" style="color: var(--primary); font-weight: 700; font-size: 13.5px;">A partir de R$ 0,00</span>
+                            <span id="customModalCategoryLabel" style="color: var(--text-muted); font-size: 12px;">• Fina Massa</span>
+                        </div>
+                    </div>
                 </div>
-                <button type="button" class="btn-close-modal" onclick="closeProductCustomizationModal()" style="border: none; background: transparent; color: var(--text-light); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;">
+                <button type="button" class="btn-close-modal" onclick="closeProductCustomizationModal()" style="border: none; background: transparent; color: var(--text-light); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%;">
                     <span class="material-symbols-rounded">close</span>
                 </button>
             </div>
 
-            <div class="manual-item-custom-body">
-                <!-- Quantidade -->
-                <div class="custom-field-group">
-                    <label>Quantidade:</label>
-                    <div class="custom-qty-picker">
-                        <button type="button" onclick="changeCustomizingQty(-1)">-</button>
-                        <input type="number" id="customModalItemQty" value="1" min="1" readonly>
-                        <button type="button" onclick="changeCustomizingQty(1)">+</button>
+            <div class="manual-item-custom-body" id="customModalBody" style="max-height: 62vh; overflow-y: auto; padding-right: 4px; margin: 16px 0;">
+                <!-- Se for Pizza / Configurable: Grupos de Opções (Bordas, Sabores 1, 2, 3) -->
+                <div id="manualGenericOptionGroupsContainer" style="display: flex; flex-direction: column; gap: 16px;"></div>
+
+                <!-- Se for Produto Simples: Lista de Adicionais -->
+                <div id="manualSimpleAdicionaisContainer" class="display-none">
+                    <div class="custom-field-group">
+                        <label style="font-size: 12px; font-weight: 700; color: var(--text-light);">Adicionais Disponíveis:</label>
+                        <div id="customModalAdicionaisList" class="custom-adicionais-list"></div>
                     </div>
                 </div>
 
-                <!-- Adicionais -->
-                <div class="custom-field-group">
-                    <label>Adicionais Disponíveis:</label>
-                    <div id="customModalAdicionaisList" class="custom-adicionais-list"></div>
+                <!-- Observações do Pedido -->
+                <div class="custom-field-group" style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label for="customModalItemNotes" style="font-size: 12px; font-weight: 700; color: var(--text-light); display: flex; align-items: center; gap: 4px;">
+                            <span class="material-symbols-rounded" style="font-size: 16px; color: #f5a623;">edit_note</span>
+                            <span>Observações do Item:</span>
+                        </label>
+                        <span id="manualCustomNotesCounter" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">0 / 140</span>
+                    </div>
+                    <textarea id="customModalItemNotes" rows="2" maxlength="140" placeholder="Ex: Sem cebola, massa crocante, orégano à parte..." oninput="updateCustomizingNotesCounter(this)" style="width: 100%; border-radius: var(--radius-sm); padding: 9px 11px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main); font-size: 12.5px; resize: vertical; box-sizing: border-box;"></textarea>
                 </div>
 
-                <!-- Observações -->
-                <div class="custom-field-group">
-                    <label for="customModalItemNotes">Observações do Item:</label>
-                    <textarea id="customModalItemNotes" rows="2" placeholder="Ex: Sem cebola, carne bem passada, maionese à parte..."></textarea>
+                <!-- Feedback de Validação / Aviso -->
+                <div id="customModalValidationAlert" class="display-none" style="background: rgba(239, 83, 80, 0.15); border: 1px solid rgba(239, 83, 80, 0.4); border-radius: var(--radius-sm); padding: 8px 12px; color: #ef5350; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+                    <span class="material-symbols-rounded" style="font-size: 16px;">warning</span>
+                    <span id="customModalValidationMsg">Selecione todos os campos obrigatórios.</span>
                 </div>
             </div>
 
-            <div class="manual-item-custom-footer">
-                <button type="button" class="btn-cancel" onclick="closeProductCustomizationModal()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 14px; border-radius: 4px; cursor: pointer;">Cancelar</button>
-                <button type="button" class="btn-confirm-add-item" onclick="confirmAddCustomizedProduct()">
-                    <span id="customModalBtnTotal">Adicionar • R$ 0,00</span>
+            <div class="manual-item-custom-footer" style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 14px; gap: 12px;">
+                <div class="custom-qty-picker" style="display: flex; align-items: center; gap: 6px;">
+                    <button type="button" onclick="changeCustomizingQty(-1)" title="Diminuir">-</button>
+                    <input type="number" id="customModalItemQty" value="1" min="1" readonly style="width: 44px; text-align: center; font-weight: 700; background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main); padding: 6px 0; border-radius: 4px;">
+                    <button type="button" onclick="changeCustomizingQty(1)" title="Aumentar">+</button>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button type="button" class="btn-cancel" onclick="closeProductCustomizationModal()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 9px 16px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 600;">Cancelar</button>
+                    <button type="button" class="btn-confirm-add-item" id="btnConfirmAddCustomProduct" onclick="confirmAddCustomizedProduct()" style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 13.5px; font-weight: 700; border-radius: var(--radius-sm); background: linear-gradient(135deg, #7b1fa2, #9c27b0); color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">add_shopping_cart</span>
+                        <span id="customModalBtnTotal">Adicionar • R$ 0,00</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SELETOR RÁPIDO DE PIZZAS (TAMANHOS E SABORES) -->
+    <div class="modal-overlay display-none" id="quickPizzaPickerModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.82); z-index: 1250; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: var(--transition);">
+        <div class="modal-container" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); width: 92%; max-width: 560px; padding: 22px; box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(245, 166, 35, 0.2); color: #f5a623; display: flex; align-items: center; justify-content: center;">
+                        <span class="material-symbols-rounded" style="font-size: 24px;">local_pizza</span>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px; font-family: var(--font-display); color: var(--text-main);">Montar Pizza Fina Massa</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">Selecione o tamanho e formato de sabores:</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-modal" onclick="closeQuickPizzaPicker()" style="border: none; background: transparent; color: var(--text-light); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%;">
+                    <span class="material-symbols-rounded">close</span>
                 </button>
+            </div>
+            <div id="quickPizzaPickerList" style="display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto;">
+                <!-- Carregado dinamicamente via renderQuickPizzaPickerList() -->
             </div>
         </div>
     </div>

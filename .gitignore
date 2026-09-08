@@ -1,9 +1,12 @@
-node_modules/
+﻿node_modules/
 orders.json
 .system_generated/
 *.log
 scratch/
-*adminsdk*.json
 *.zip
-.firebase/
-backup_pizzaria_drill/
+edge_test_output.txt
+test_output.txt
+test_results.json
+test_rebranding.html
+run_headless_tests.ps1
+crop_logo.ps1

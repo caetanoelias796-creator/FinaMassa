@@ -3,13 +3,14 @@
    Versão Centralizada: fina-massa-v2.0.0
    ========================================================================== */
 
-const CACHE_NAME = 'fina-massa-v2.3.0';
+const CACHE_NAME = 'fina-massa-v2.5.0';
 const CACHE_PREFIX = 'fina-massa-';
 
 // Lista de ativos estáticos essenciais para funcionamento offline
 const STATIC_ASSETS = [
     './',
     './index.html',
+    './branding-theme.css',
     './index.css',
     './PizzaEngine.js',
     './app.js',

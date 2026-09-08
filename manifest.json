@@ -4,8 +4,8 @@
   "description": "Peça as melhores pizzas artesanais, calzones e bebidas. Entrega rápida e pedidos online.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0c0c0e",
-  "theme_color": "#0c0c0e",
+  "background_color": "#0B0C0E",
+  "theme_color": "#F5A623",
   "icons": [
     {
       "src": "assets/icon-192.png",

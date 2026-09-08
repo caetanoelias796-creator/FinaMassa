@@ -1,0 +1,82 @@
+/* ==========================================================================
+   Fina Massa Pizzaria - Design System Oficial
+   Identidade Visual: Fundo Dark Premium (#0B0C0E / #121418), Dourado/Amarelo (#F5A623 / #E69516), Branco/Cinza Claro
+   Inspirado 100% na referência oficial da marca
+   ========================================================================== */
+
+:root {
+    /* Identidade da Marca */
+    --brand-name: "Fina Massa Pizzaria";
+    --brand-slogan: "Mais que Pizza, é Tradição!";
+    --brand-tradition: "Tradição • Qualidade • Sabor";
+    
+    /* Cores da Marca (Extraídas do Logo e Referência Oficial) */
+    --primary: #F5A623;                         /* Amarelo Ouro / Dourado do Logo */
+    --primary-hover: #FFAF38;                   /* Dourado luminoso */
+    --primary-dark: #D48810;                    /* Dourado escuro / sombra */
+    --primary-light: rgba(245, 166, 35, 0.12);  /* Fundo sutil com acento dourado */
+    --primary-gradient: linear-gradient(135deg, #F5A623 0%, #E69516 100%);
+    --gold-glow: 0 0 20px rgba(245, 166, 35, 0.35);
+    
+    /* Dourado Secundário */
+    --accent-gold: #F5A623;
+    --accent-gold-hover: #FFAF38;
+    --accent-gold-dark: #C97D06;
+    --accent-gold-light: rgba(245, 166, 35, 0.15);
+    --gold-gradient: linear-gradient(135deg, #FFB947 0%, #E69516 100%);
+    
+    /* Backgrounds & Superfícies (Preto & Grafite Nobre) */
+    --bg-main: #0B0C0E;                         /* Preto carvão profundo */
+    --bg-card: #14161B;                         /* Grafite escuro para cards de produto */
+    --bg-card-hover: #1A1D24;                   /* Grafite elevado ao passar o mouse */
+    --bg-surface: #1B1E26;                      /* Superfície secundária dos inputs/seções */
+    --bg-sidebar: #0E1014;                      /* Barra lateral do painel */
+    --bg-input: #121418;                        /* Campos de formulário com contraste nítido */
+    --bg-drawer: #101216;                       /* Fundo do carrinho / gaveta */
+    --bg-modal: #121419;                        /* Fundo dos modais */
+    
+    /* Tipografia & Textos de Alto Contraste */
+    --text-main: #FFFFFF;                       /* Branco puro para títulos e destaque */
+    --text-body: #E2E4E9;                       /* Cinza muito claro para leitura confortável */
+    --text-muted: #9BA1B0;                      /* Cinza médio para descrições e itens secundários */
+    --text-light: #686E7D;                      /* Placeholders e elementos discretos */
+    --text-gold: #F5A623;                       /* Texto dourado institucional */
+    --text-on-gold: #0B0C0E;                    /* Texto escuro legível sobre botões dourados */
+    
+    /* Status Operacionais & Feedback */
+    --accent-green: #2ED573;                    /* Verde aberto / sucesso */
+    --accent-green-light: rgba(46, 213, 115, 0.15);
+    --whatsapp-green: #25D366;                  /* Verde oficial WhatsApp */
+    --status-red: #FF4757;                      /* Vermelho alerta / fechado */
+    --status-red-light: rgba(255, 71, 87, 0.15);
+    --accent-blue: #1E90FF;                     /* Azul em preparo */
+    
+    /* Fontes Oficiais */
+    --font-primary: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-heading: 'Outfit', sans-serif;
+    --font-script: 'Playfair Display', Georgia, serif;
+    
+    /* Bordas & Detalhes Finos */
+    --border-color: rgba(255, 255, 255, 0.08);  /* Borda sutil nos cards escuros */
+    --border-color-light: rgba(255, 255, 255, 0.14);
+    --border-gold: rgba(245, 166, 35, 0.45);    /* Borda dourada de destaque */
+    --border-gold-active: #F5A623;
+    --glass-bg: rgba(11, 12, 14, 0.92);
+    --glass-border: rgba(245, 166, 35, 0.18);
+    
+    /* Raios de Arredondamento */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 18px;
+    --radius-xl: 26px;
+    --radius-pill: 9999px;
+    
+    /* Sombras Escuras & Glow Dourado */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 14px 40px rgba(0, 0, 0, 0.8);
+    --shadow-gold: 0 4px 20px rgba(245, 166, 35, 0.35);
+    
+    --transition-fast: all 0.18s ease-in-out;
+    --transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
