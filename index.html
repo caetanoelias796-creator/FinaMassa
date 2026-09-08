@@ -5,608 +5,517 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO Meta Tags -->
-    <title>Pizzaria Drill | Cardápio Digital Premium</title>
-    <meta name="description" content="Peça as melhores pizzas artesanais da região sem sair de casa. Ingredientes frescos, bordas recheadas e entrega rápida. Monte sua pizza agora!">
-    <meta name="keywords" content="pizzaria, cardapio digital, delivery pizza, pizza meio a meio, Pizzaria Drill, pizza artesanal, Nova Petrópolis">
-    <meta name="author" content="Pizzaria Drill">
+    <title>Fina Massa Pizzaria | Cardápio Digital &amp; Delivery</title>
+    <meta name="description" content="Peça as melhores pizzas artesanais, calzones e bebidas bem geladas. Ingredientes selecionados e entrega rápida. Faça seu pedido online!">
+    <meta name="keywords" content="pizzaria, delivery pizza, pizza artesanal, calzone, Fina Massa Pizzaria">
+    <meta name="author" content="Fina Massa Pizzaria">
     
     <!-- Open Graph (Facebook / WhatsApp) -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Pizzaria Drill - Cardápio Digital & Delivery">
-    <meta property="og:description" content="Do forno para sua mesa! Faça seu pedido online de forma simples e rápida. Monte pizzas de até 3 sabores.">
-    <meta property="og:image" content="assets/pizza_hero.png">
+    <meta property="og:title" content="Fina Massa Pizzaria - Cardápio Digital &amp; Delivery">
+    <meta property="og:description" content="Pizzas artesanais, calzones e bebidas! Faça seu pedido online de forma simples e rápida.">
+    <meta property="og:image" content="assets/hero_banner.jpg">
     
-    <!-- Fonts: Playfair Display for headings & Outfit for clean body text -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
     
     <!-- Icons (Google Material Symbols) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     
     <!-- CSS File -->
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="index.css?v=5">
+    
+    <!-- PWA & Mobile Optimization -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#74112B">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
 </head>
 <body>
 
-    <!-- Main Mobile App Wrapper -->
-    <div class="app-container">
-        
-        <!-- HEADER FIXO (Topo) -->
-        <header class="app-header" id="appHeader" style="justify-content: center;">
-            <div class="header-logo" style="font-size: 20px; gap: 8px; justify-content: center; width: 100%;">
-                <img src="assets/logo.png" alt="Pizzaria Drill Logo" class="brand-logo" style="height: 40px; width: 40px; object-fit: contain; border-radius: 50%;">
-                <span>Pizzaria Drill</span>
+    <!-- Header & Hero Section -->
+    <header class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="header-top">
+                <div class="status-badge open" id="statusBadge">
+                    <span class="dot animate-pulse"></span>
+                    Aberto agora para pedidos
+                </div>
             </div>
-        </header>
-
-        <!-- MAIN SCROLL CONTENT -->
-        <main class="main-content" id="mainContent">
             
-            <!-- BANNER PRINCIPAL (Promocional Slider) -->
-            <section class="promo-banners-carousel">
-                <div class="banner-track" id="bannerTrack">
-                    <!-- Carregado dinamicamente via JS -->
-                </div>
-            </section>
-
-            <!-- NAVEGAÇÃO DE CATEGORIAS -->
-            <section class="section-container" style="padding-bottom: 5px;">
-                <div class="section-header">
-                    <h3 class="section-title">Categorias</h3>
-                </div>
-                
-                <div class="scroll-x-container" id="categoriesScroll">
-                    <!-- Carregado dinamicamente via JS -->
-                </div>
-            </section>
-
-            <!-- SEÇÃO DE PROMOÇÕES -->
-            <section class="section-container" id="promoSection">
-                <div class="section-header">
-                    <h3 class="section-title">🔥 Promoções</h3>
-                </div>
-                
-                <div class="grid-2" id="promoGrid">
-                    <!-- Cards de Promoção carregados via JS -->
-                </div>
-            </section>
-
-            <!-- SEÇÃO DE RECOMENDADAS -->
-            <section class="section-container" id="recommendedSection" style="padding-bottom: 30px;">
-                <div class="section-header">
-                    <h3 class="section-title">⭐ Recomendadas para você</h3>
-                </div>
-                
-                <div class="grid-2" id="recommendedGrid">
-                    <!-- Cards carregados via JS -->
-                </div>
-            </section>
-
-        </main>
-
-        <!-- ADDRESS MODAL (Gaveta/Drawer) -->
-        <div class="modal-overlay" id="addressModal" onclick="closeAddressModal(event)">
-            <div class="modal-drawer" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h3 class="modal-title">Endereço de Entrega</h3>
-                    <button class="modal-close-btn" onclick="closeAddressModal(event)">
-                        <span class="material-symbols-rounded">close</span>
-                    </button>
-                </div>
-                
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <input type="text" id="addressInput" class="form-input" placeholder="Rua, Número - Bairro" value="">
-                </div>
-                
-                <button class="btn-submit" onclick="saveAddress()">Confirmar Endereço</button>
+            <div class="brand-wrapper pizzeria-brand-wrapper">
+                <img src="assets/logo.png" alt="Fina Massa Pizzaria Logo" class="brand-logo pizzeria-logo" onerror="this.style.display='none'">
+                <h1 class="brand-title pizzeria-title" id="headerCompanyName">Fina Massa Pizzaria</h1>
+            </div>
+            <p class="brand-subtitle pizzeria-subtitle" id="headerCompanySlogan">Pizzas Artesanais | Delivery &amp; Salão</p>
+            
+            <div class="hero-slogan">
+                <span class="tag">🍕 Massa fininha &amp; crocante</span>
+                <span class="tag bg-green">✨ Ingredientes selecionados</span>
+                <button id="promoBtn" class="promo-tag-btn blinking-btn" onclick="openPromoModal(true)" style="display: none;">
+                    <span class="material-symbols-rounded" style="font-size: 16px; margin-right: 4px; vertical-align: middle;">local_offer</span>
+                    Promoção do dia 🔥
+                </button>
             </div>
         </div>
+    </header>
 
-        <!-- Cart Sidebar / Drawer -->
-        <div class="cart-drawer-overlay" id="cartOverlay" onclick="toggleCart(false)"></div>
-        <aside class="cart-drawer" id="cartDrawer">
-            <div class="cart-header">
-                <div class="cart-title-wrapper">
-                    <span class="material-symbols-rounded">shopping_basket</span>
-                    <h2>Seu Pedido</h2>
+    <!-- Sticky Navigation & Filter Bar -->
+    <div class="sticky-nav-container">
+        <div class="container sticky-nav-wrapper">
+            <nav class="categories-nav" id="categoriesNav">
+                <a href="#pizzas-tradicionais-section" class="nav-link active" onclick="setActiveCategoryTab(event, 'pizzas-tradicionais-section')">🍕 Pizzas Tradicionais</a>
+                <a href="#pizzas-especiais-section" class="nav-link" onclick="setActiveCategoryTab(event, 'pizzas-especiais-section')">⭐ Pizzas Especiais</a>
+                <a href="#calzones-section" class="nav-link" onclick="setActiveCategoryTab(event, 'calzones-section')">🥟 Calzones</a>
+                <a href="#bebidas-section" class="nav-link" onclick="setActiveCategoryTab(event, 'bebidas-section')">🥤 Bebidas</a>
+            </nav>
+            
+            <div class="search-box">
+                <span class="material-symbols-rounded search-icon">search</span>
+                <input type="text" id="searchInput" placeholder="Buscar no cardápio..." oninput="onSearchInput()">
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <main class="main-container container">
+        
+        <!-- Menu Sections -->
+        <div class="menu-layout">
+            <div class="menu-items-section">
+                <!-- Seção: Pizzas Tradicionais -->
+                <section id="pizzas-tradicionais-section" class="menu-category-section">
+                    <div class="category-header-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                        <h2 class="category-title" style="margin-bottom: 0;">🍕 Pizzas Tradicionais</h2>
+                        <span style="font-size: 11px; background: rgba(230, 81, 0, 0.1); color: var(--primary, #e65100); border: 1px solid rgba(230, 81, 0, 0.3); padding: 3px 8px; border-radius: 4px; font-weight: 700;">TRADICIONAIS</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 16px 0;">Massa fina e crocante com 20 sabores clássicos à sua escolha. Opções de 1, 2 ou 3 sabores e bordas artesanais.</p>
+                    <div class="items-grid" id="pizzasTradicionaisGrid">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </section>
+
+                <!-- Seção: Pizzas Especiais -->
+                <section id="pizzas-especiais-section" class="menu-category-section">
+                    <div class="category-header-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                        <h2 class="category-title" style="margin-bottom: 0;">⭐ Pizzas Especiais</h2>
+                        <span style="font-size: 11px; background: rgba(245, 166, 35, 0.15); color: #b87a00; border: 1px solid rgba(245, 166, 35, 0.4); padding: 3px 8px; border-radius: 4px; font-weight: 700;">ESPECIAIS &amp; NOBRES</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 16px 0;">40 sabores nobres preparados com carnes selecionadas, queijos especiais e sobremesas artesanais.</p>
+                    <div class="items-grid" id="pizzasEspeciaisGrid">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </section>
+
+                <!-- Seção: Calzones -->
+                <section id="calzones-section" class="menu-category-section">
+                    <h2 class="category-title">🥟 Calzones Artesanais</h2>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 16px 0;">Massa fechada recheada e assada com crosta dourada crocante.</p>
+                    <div class="items-grid" id="calzonesGrid">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </section>
+
+                <!-- Seção: Bebidas -->
+                <section id="bebidas-section" class="menu-category-section">
+                    <h2 class="category-title">🥤 Bebidas Geladas</h2>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 16px 0;">Refrigerantes, cervejas, sucos, vinhos e águas para acompanhar seu pedido.</p>
+                    <div class="items-grid" id="bebidasGrid">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Information -->
+    <footer class="footer-section">
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <h2 id="footerCompanyName">Fina Massa Pizzaria</h2>
+                <p id="footerCompanySlogan">Pizzas Artesanais | Delivery &amp; Salão</p>
+            </div>
+            <div class="footer-info">
+                <p id="footerAddress"><span class="material-symbols-rounded">location_on</span> Atendimento presencial &amp; Delivery</p>
+                <p id="footerCompanyPhone"><span class="material-symbols-rounded">phone</span> WhatsApp para pedidos</p>
+                <p id="footerHours"><span class="material-symbols-rounded">schedule</span> Terça a Domingo das 18h às 23h30</p>
+            </div>
+        </div>
+        <div class="footer-bottom text-center">
+            <p>&copy; 2026 Fina Massa Pizzaria - Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Floating Cart Button (Mobile) -->
+    <button class="floating-cart-btn" id="floatingCartBtn" onclick="toggleCart(true)">
+        <span class="material-symbols-rounded">shopping_basket</span>
+        <span class="cart-badge animate-bounce" id="cartCountBadge">0</span>
+    </button>
+
+    <!-- Cart Sidebar / Drawer -->
+    <div class="cart-drawer-overlay" id="cartOverlay" onclick="toggleCart(false)"></div>
+    <aside class="cart-drawer" id="cartDrawer">
+        <div class="cart-header">
+            <div class="cart-title-wrapper">
+                <span class="material-symbols-rounded">shopping_basket</span>
+                <h2>Seu Pedido</h2>
+            </div>
+            <button class="btn-close" onclick="toggleCart(false)">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+        </div>
+
+        <!-- Empty Cart State -->
+        <div class="cart-empty-state" id="cartEmptyState">
+            <span class="material-symbols-rounded empty-icon">shopping_bag</span>
+            <p>Seu carrinho está vazio.</p>
+            <p class="subtext">Adicione algumas delícias do nosso cardápio!</p>
+        </div>
+
+        <!-- Filled Cart Content -->
+        <div class="cart-content" id="cartContent">
+            <div class="cart-items" id="cartItemsList">
+                <!-- Dynamically filled by JS -->
+            </div>
+            
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="cartSubtotal">R$ 0,00</span>
                 </div>
-                <button class="btn-close" onclick="toggleCart(false)">
+                <div class="summary-row">
+                    <span>Taxa de Entrega</span>
+                    <span id="cartDeliveryFee">Grátis</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span id="cartTotal">R$ 0,00</span>
+                </div>
+                
+                <button class="btn btn-primary btn-block checkout-btn" onclick="openCheckoutModal()">
+                    <span>Finalizar Pedido</span>
+                    <span class="material-symbols-rounded">arrow_forward</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Generic Product Customizer Modal (Mobile-First) -->
+    <div class="modal-overlay" id="pizzaCustomizerModal">
+        <div class="modal-card">
+            <div class="modal-header-image">
+                <img id="pizzaModalHeaderImg" src="assets/pizza_hero.png" alt="Personalizar Item" onerror="this.src='assets/pizza_hero.png'">
+                <button class="btn-close-circle" onclick="closePizzaCustomizer()">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+                <div class="modal-header-badge" id="pizzaModalBadge">Fina Massa</div>
+            </div>
+            
+            <div class="modal-body">
+                <h2 id="pizzaModalTitle">Personalizar Item</h2>
+                <div id="pizzaModalPriceTag" style="font-size: 18px; font-weight: 800; color: var(--primary, #74112B); margin-bottom: 6px;">R$ 0,00</div>
+                <p class="customizer-desc" id="pizzaModalDesc" style="margin-bottom: 16px;">Selecione suas preferências e monte seu item.</p>
+                
+                <form id="pizzaCustomizerForm" onsubmit="event.preventDefault()">
+                    <!-- Container dinâmico para os optionGroups do produto -->
+                    <div id="genericOptionGroupsContainer"></div>
+
+                    <!-- Seção de Comentário / Observações com contador 0/140 -->
+                    <div class="customizer-section" id="pizzaCommentSection" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                        <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span class="material-symbols-rounded" style="color: var(--accent-gold, #f5a623); font-size: 20px;">edit_note</span>
+                                <h3 style="margin: 0; font-size: 15px; font-weight: 700;">Algum comentário?</h3>
+                            </div>
+                            <span class="comment-char-counter" id="commentCharCounter" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">0 / 140</span>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <textarea id="pizzaCustomNotes" maxlength="140" placeholder="Ex: Sem cebola, massa bem crocante, pouco molho..." rows="2" oninput="onCommentTextInput(this)" style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid var(--border-color); font-family: inherit; font-size: 13px; resize: none; box-sizing: border-box;"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <div class="customizer-quantity">
+                    <button type="button" class="btn-qty" onclick="adjustPizzaQty(-1)">
+                        <span class="material-symbols-rounded">remove</span>
+                    </button>
+                    <span id="pizzaCustomQty" class="qty-number">1</span>
+                    <button type="button" class="btn-qty" onclick="adjustPizzaQty(1)">
+                        <span class="material-symbols-rounded">add</span>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-primary btn-add-order" id="addPizzaToOrderBtn" onclick="addConfiguredItemToCart()">
+                    <span class="material-symbols-rounded">add_shopping_cart</span>
+                    <span id="pizzaAddButtonLabel">Adicionar ao Pedido — R$ 0,00</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Customizer / Adicionais Modal (Retrocompatibilidade) -->
+    <div class="modal-overlay" id="customizerModal">
+        <div class="modal-card">
+            <div class="modal-header-image">
+                <img id="customizerHeaderImg" src="assets/pizza_hero.png" alt="Personalizar Item" onerror="this.src='assets/pizza_hero.png'">
+                <button class="btn-close-circle" onclick="closeProductCustomizer()">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+                <div class="modal-header-badge">Personalizar</div>
+            </div>
+            
+            <div class="modal-body">
+                <h2 id="customizerTitle">Personalizar Item</h2>
+                <p class="customizer-desc" id="customizerDesc">Escolha os adicionais e observações para o seu item.</p>
+                
+                <form id="productCustomizerForm" onsubmit="event.preventDefault()">
+                    <div class="customizer-section" id="adicionaisSection">
+                        <div class="section-title">
+                            <span class="number">1</span>
+                            <h3>Adicionais e Opcionais</h3>
+                            <span class="badge">Opcional</span>
+                        </div>
+                        <div class="adicionais-list" id="customizerAdicionaisList"></div>
+                    </div>
+
+                    <div class="customizer-section">
+                        <div class="section-title">
+                            <span class="number">2</span>
+                            <h3>Observações do Item</h3>
+                            <span class="badge">Opcional</span>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="itemCustomNotes" maxlength="140" placeholder="Ex: Sem cebola, bem assado, sem molho..." rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <div class="customizer-quantity">
+                    <button type="button" class="btn-qty" onclick="adjustCustomizerQty(-1)">
+                        <span class="material-symbols-rounded">remove</span>
+                    </button>
+                    <span id="customizerQty" class="qty-number">1</span>
+                    <button type="button" class="btn-qty" onclick="adjustCustomizerQty(1)">
+                        <span class="material-symbols-rounded">add</span>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-primary btn-add-order" id="btnAddToOrder" onclick="addCustomizedProductToCart()">
+                    <span class="material-symbols-rounded">add_shopping_cart</span>
+                    <span id="customizerAddBtnLabel">Adicionar ao Pedido — R$ 0,00</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="modal-overlay" id="checkoutModal">
+        <div class="modal-card checkout-card">
+            <div class="checkout-header">
+                <h2>Finalizar Pedido</h2>
+                <button class="btn-close-circle" onclick="closeCheckoutModal()">
                     <span class="material-symbols-rounded">close</span>
                 </button>
             </div>
-
-            <!-- Empty Cart State -->
-            <div class="cart-empty-state" id="cartEmptyState">
-                <span class="material-symbols-rounded empty-icon">shopping_bag</span>
-                <p>Seu carrinho está vazio.</p>
-                <p class="subtext">Adicione algumas delícias do nosso cardápio!</p>
-            </div>
-
-            <!-- Filled Cart Content -->
-            <div class="cart-content" id="cartContent">
-                <div class="cart-items" id="cartItemsList">
-                    <!-- Dynamically filled by JS -->
-                </div>
-                
-                <div class="cart-summary">
-                    <div class="summary-row">
-                        <span>Subtotal</span>
-                        <span id="cartSubtotal">R$ 0,00</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>Taxa de Entrega</span>
-                        <span id="cartDeliveryFee">R$ 7,00</span>
-                    </div>
-                    <div class="summary-row total">
-                        <span>Total</span>
-                        <span id="cartTotal">R$ 7,00</span>
-                    </div>
-                    
-                    <button class="btn btn-primary btn-block checkout-btn" onclick="openCheckoutModal()">
-                        <span>Finalizar Pedido</span>
-                        <span class="material-symbols-rounded">arrow_forward</span>
-                    </button>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Pizza Customizer / Multi-Flavor Modal -->
-        <div class="modal-overlay" id="customizerModal">
-            <div class="modal-card customizer-card">
-                <div class="modal-header">
-                    <button class="btn-back" onclick="closePizzaCustomizer()" title="Voltar">
-                        <span class="material-symbols-rounded">arrow_back</span>
-                    </button>
-                    <div class="modal-header-center">
-                        <h2 id="customizerTitle">Personalizar Pizza</h2>
-                        <span class="modal-header-size-badge" id="customizerHeaderBadge">Grande</span>
-                    </div>
-                    <div class="header-actions">
-                        <button class="btn-action-icon" title="Compartilhar" type="button">
-                            <span class="material-symbols-rounded">share</span>
+            
+            <div class="checkout-body">
+                <form id="checkoutForm" novalidate onsubmit="event.preventDefault(); submitOrder();">
+                    <!-- Delivery / Pickup Toggle -->
+                    <div class="checkout-type-selector">
+                        <button type="button" id="deliveryTab" class="type-tab active" onclick="setCheckoutType('delivery')">
+                            <span class="material-symbols-rounded">moped</span>
+                            <span>Entrega (Delivery)</span>
                         </button>
-                        <button class="btn-action-icon" title="Favoritar" type="button">
-                            <span class="material-symbols-rounded">favorite</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="modal-body customizer-body">
-                    <!-- Visual Pizza Assembly Area -->
-                    <div class="pizza-visualizer-container">
-                        <div class="pizza-display-wrapper">
-                            <!-- Floating Shadow -->
-                            <div class="pizza-visual-shadow" id="pizzaVisualShadow"></div>
-                            <!-- Pizza Visual Container -->
-                            <div class="pizza-visual-display" id="visualPizzaDisplay">
-                                <!-- Dynamically loaded slices and base crust -->
-                            </div>
-                        </div>
-                        <!-- Selected Slices List / Badges -->
-                        <div class="active-flavors-pills" id="activeFlavorsPills">
-                            <!-- Dynamically filled by JS -->
-                        </div>
-                    </div>
-                    
-                    <form id="pizzaCustomizerForm">
-                        <!-- Step 1: Size -->
-                        <div class="customizer-section">
-                            <div class="section-title">
-                                <span class="number">1</span>
-                                <h3>Escolha o tamanho</h3>
-                            </div>
-                            <div class="size-options-grid">
-                                <label class="size-card">
-                                    <input type="radio" name="pizza-size" value="brotinho" data-price="50" data-max-flavors="1">
-                                    <div class="size-card-content">
-                                        <span class="size-title">Brotinho <span class="size-detail">(20cm • 4 fatias)</span></span>
-                                        <span class="size-rules">1 sabor</span>
-                                        <span class="size-price">A partir de R$ 47,00</span>
-                                    </div>
-                                </label>
-                                
-                                <label class="size-card">
-                                    <input type="radio" name="pizza-size" value="media" data-price="85" data-max-flavors="2" checked>
-                                    <div class="size-card-content">
-                                        <span class="size-title">Média <span class="size-detail">(25cm • 6 fatias)</span></span>
-                                        <span class="size-rules">Até 2 sabores</span>
-                                        <span class="size-price">A partir de R$ 80,00</span>
-                                    </div>
-                                </label>
-                                
-                                <label class="size-card">
-                                    <input type="radio" name="pizza-size" value="grande" data-price="115" data-max-flavors="3">
-                                    <div class="size-card-content">
-                                        <span class="size-title">Grande <span class="size-detail">(35cm • 12 fatias)</span></span>
-                                        <span class="size-rules">Até 3 sabores</span>
-                                        <span class="size-price">A partir de R$ 110,00</span>
-                                    </div>
-                                </label>
-                                
-                                <label class="size-card">
-                                    <input type="radio" name="pizza-size" value="familia" data-price="150" data-max-flavors="4">
-                                    <div class="size-card-content">
-                                        <span class="size-title">Família <span class="size-detail">(40cm • 16 fatias)</span></span>
-                                        <span class="size-rules">Até 4 sabores</span>
-                                        <span class="size-price">A partir de R$ 135,00</span>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Step 2: Borders -->
-                        <div class="customizer-section">
-                            <div class="section-title">
-                                <span class="number">2</span>
-                                <h3>Borda Recheada?</h3>
-                            </div>
-                            <div class="border-options-grid" id="bordersContainer">
-                                <!-- Carregado dinamicamente via JavaScript -->
-                            </div>
-                        </div>
-
-                        <!-- Step 3: Flavors (Horizontal Carousel) -->
-                        <div class="customizer-section">
-                            <div class="section-title">
-                                <span class="number">3</span>
-                                <h3>Escolha os sabores</h3>
-                                <span class="helper-text" id="flavorSelectionLimitText">Selecione até 3 sabores</span>
-                            </div>
-                            
-                            <!-- Carousel Filter Sub-tabs -->
-                            <div class="carousel-filter-tabs" id="carouselFilterTabs">
-                                <button type="button" class="filter-tab active" onclick="filterFlavorsCarousel('todas')">Todas</button>
-                                <button type="button" class="filter-tab" onclick="filterFlavorsCarousel('salgadas')">Salgadas</button>
-                                <button type="button" class="filter-tab" onclick="filterFlavorsCarousel('doces')">Doces</button>
-                                <button type="button" class="filter-tab" onclick="filterFlavorsCarousel('promo')" id="tabFilterPromo" style="display: none;">Promoções</button>
-                            </div>
-                            
-                            <!-- Flavors Carousel Wrapper -->
-                            <div class="flavors-carousel-wrapper">
-                                <div class="flavors-carousel" id="customizerFlavorsList">
-                                    <!-- Dynamically loaded circular flavor cards -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 4: Notes -->
-                        <div class="customizer-section">
-                            <div class="section-title">
-                                <span class="number">4</span>
-                                <h3>Observações</h3>
-                            </div>
-                            <textarea id="pizzaNotes" placeholder="Ex: Sem cebola, bem assada, etc." rows="2" maxlength="150"></textarea>
-                        </div>
-                    </form>
-                </div>
-                
-                <div class="modal-footer">
-                    <div class="quantity-selector">
-                        <button class="qty-btn" type="button" onclick="adjustCustomizerQty(-1)">
-                            <span class="material-symbols-rounded">remove</span>
-                        </button>
-                        <span class="qty-number" id="customizerQty">1</span>
-                        <button class="qty-btn" type="button" onclick="adjustCustomizerQty(1)">
-                            <span class="material-symbols-rounded">add</span>
+                        <button type="button" id="pickupTab" class="type-tab" onclick="setCheckoutType('pickup')">
+                            <span class="material-symbols-rounded">store</span>
+                            <span>Retirada no Balcão</span>
                         </button>
                     </div>
                     
-                    <button class="btn btn-primary flex-grow" type="button" id="btnAddToOrder" onclick="addPizzaToOrder()">
-                        Adicionar ao Pedido — R$ 0,00
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Açaí Customizer Modal -->
-        <div class="modal-overlay" id="acaiCustomizerModal">
-            <div class="modal-card customizer-card">
-                <div class="modal-header">
-                    <button class="btn-back" onclick="closeAcaiCustomizer()" title="Voltar">
-                        <span class="material-symbols-rounded">arrow_back</span>
-                    </button>
-                    <div class="modal-header-center">
-                        <h2 style="font-family: 'Playfair Display', serif; font-weight: 700;">Personalizar Açaí</h2>
-                        <span class="modal-header-size-badge" id="acaiCustomizerHeaderBadge" style="background: #e1bee7; color: #4a148c;">300ml</span>
-                    </div>
-                    <div class="header-actions">
-                        <button class="btn-action-icon" title="Favoritar" type="button">
-                            <span class="material-symbols-rounded">favorite</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="modal-body customizer-body">
-                    <!-- Visual Açaí Assembly Area -->
-                    <div class="pizza-visualizer-container" style="min-height: 180px; padding: 15px 0; background: linear-gradient(135deg, rgba(74, 20, 140, 0.03) 0%, rgba(74, 20, 140, 0.08) 100%); border-radius: var(--radius-lg); margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <div class="acai-cup-visualizer" style="position: relative; width: 100px; height: 130px; margin: 0 auto;">
-                            <div class="acai-cup-body" style="width: 100%; height: 100%; background: linear-gradient(180deg, #4a148c 0%, #310f5c 100%); border: 3px solid rgba(255, 255, 255, 0.15); border-radius: 10px 10px 40px 40px; box-shadow: 0 10px 20px rgba(74, 20, 140, 0.3), inset 0 8px 10px rgba(255, 255, 255, 0.2); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-                                <span class="acai-cup-text" style="color: rgba(255,255,255,0.7); font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">Açaí da Drill</span>
-                                <!-- Purple Wave effect -->
-                                <div class="acai-wave" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(0deg, rgba(74,20,140,0.8) 0%, rgba(74,20,140,0.2) 100%); opacity: 0.5;"></div>
-                            </div>
-                        </div>
-                        <!-- Selected Additions Badges / Pills -->
-                        <div class="active-flavors-pills" id="activeAcaiAdditionsPills" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; width: 100%; padding: 0 10px;">
-                            <!-- Dynamically filled by JS -->
-                        </div>
-                    </div>
-                    
-                    <form id="acaiCustomizerForm">
-                        <!-- Step 1: Size -->
-                        <div class="customizer-section">
-                            <div class="section-title">
-                                <span class="number" style="background: #4a148c; color: white;">1</span>
-                                <h3>Escolha o tamanho</h3>
-                            </div>
-                            <div class="size-options-grid">
-                                <label class="size-card">
-                                    <input type="radio" name="acai-size" value="300ml" data-price="17" data-max-free="3" onchange="onAcaiSizeChange()" checked>
-                                    <div class="size-card-content">
-                                        <span class="size-title">300ml</span>
-                                        <span class="size-rules">3 adicionais grátis</span>
-                                        <span class="size-price">R$ 17,00</span>
-                                    </div>
-                                </label>
-                                
-                                <label class="size-card">
-                                    <input type="radio" name="acai-size" value="500ml" data-price="24" data-max-free="4" onchange="onAcaiSizeChange()">
-                                    <div class="size-card-content">
-                                        <span class="size-title">500ml</span>
-                                        <span class="size-rules">4 adicionais grátis</span>
-                                        <span class="size-price">R$ 24,00</span>
-                                    </div>
-                                </label>
-                                
-                                <label class="size-card">
-                                    <input type="radio" name="acai-size" value="700ml" data-price="30" data-max-free="5" onchange="onAcaiSizeChange()">
-                                    <div class="size-card-content">
-                                        <span class="size-title">700ml</span>
-                                        <span class="size-rules">5 adicionais grátis</span>
-                                        <span class="size-price">R$ 30,00</span>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Step 2: Free Additions -->
-                        <div class="customizer-section">
-                            <div class="section-title">
-                                <span class="number" style="background: #4a148c; color: white;">2</span>
-                                <h3>Escolha os adicionais grátis</h3>
-                                <span class="helper-text" id="acaiFreeLimitText" style="color: #4a148c;">Selecione até 3 adicionais grátis</span>
-                            </div>
-                            <div class="acai-additions-grid" id="acaiFreeAdditionsContainer">
-                                <!-- Dynamically loaded via JS -->
-                            </div>
-                        </div>
-
-                        <!-- Step 3: Paid Additions R$ 5,00 -->
-                        <div class="customizer-section">
-                            <div class="section-title">
-                                <span class="number" style="background: #4a148c; color: white;">3</span>
-                                <h3>Adicionais Pagos (+ R$ 5,00)</h3>
-                                <span class="helper-text">Adicione quantos quiser</span>
-                            </div>
-                            <div class="acai-additions-grid" id="acaiPaid5AdditionsContainer">
-                                <!-- Dynamically loaded via JS -->
-                            </div>
-                        </div>
-
-                        <!-- Step 4: Paid Additions R$ 2,50 -->
-                        <div class="customizer-section">
-                            <div class="section-title">
-                                <span class="number" style="background: #4a148c; color: white;">4</span>
-                                <h3>Adicionais Pagos (+ R$ 2,50)</h3>
-                                <span class="helper-text">Adicione quantos quiser</span>
-                            </div>
-                            <div class="acai-additions-grid" id="acaiPaid25AdditionsContainer">
-                                <!-- Dynamically loaded via JS -->
-                            </div>
-                        </div>
-
-                        <!-- Step 5: Notes -->
-                        <div class="customizer-section">
-                            <div class="section-title">
-                                <span class="number" style="background: #4a148c; color: white;">5</span>
-                                <h3>Observações</h3>
-                            </div>
-                            <textarea id="acaiNotes" placeholder="Ex: Caprichar no leite em pó, mandar colher extra, etc." rows="2" maxlength="150"></textarea>
-                        </div>
-                    </form>
-                </div>
-                
-                <div class="modal-footer">
-                    <div class="quantity-selector">
-                        <button class="qty-btn" type="button" onclick="adjustAcaiQty(-1)">
-                            <span class="material-symbols-rounded">remove</span>
-                        </button>
-                        <span class="qty-number" id="acaiCustomizerQty">1</span>
-                        <button class="qty-btn" type="button" onclick="adjustAcaiQty(1)">
-                            <span class="material-symbols-rounded">add</span>
-                        </button>
-                    </div>
-                    
-                    <button class="btn btn-primary flex-grow" type="button" id="btnAddToOrderAcai" onclick="addAcaiToOrder()" style="background: linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%); border: none;">
-                        Adicionar ao Pedido — R$ 17,00
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Checkout Modal -->
-        <div class="modal-overlay" id="checkoutModal">
-            <div class="modal-card max-width-600">
-                <div class="modal-header">
-                    <h2>Finalizar Pedido</h2>
-                    <button class="btn-close" onclick="closeCheckoutModal()">
-                        <span class="material-symbols-rounded">close</span>
-                    </button>
-                </div>
-                
-                <div class="modal-body pd-24">
-                    <form id="checkoutForm">
-                        <!-- Delivery Option -->
-                        <div class="checkout-toggle-group">
-                            <label class="toggle-option active" id="deliveryTab" onclick="setCheckoutType('delivery')">
-                                <span class="material-symbols-rounded">delivery_dining</span>
-                                Entrega (Delivery)
-                            </label>
-                            <label class="toggle-option" id="pickupTab" onclick="setCheckoutType('pickup')">
-                                <span class="material-symbols-rounded">store</span>
-                                Retirada no Balcão
-                            </label>
-                        </div>
-
-                        <!-- Customer Info -->
-                        <div class="form-section">
-                            <h4>Dados do Cliente</h4>
-                            <div class="form-row">
-                                <div class="form-group flex-2">
-                                    <label for="clientName">Seu Nome *</label>
-                                    <input type="text" id="clientName" required placeholder="Ex: Elias Caetano">
-                                </div>
-                                <div class="form-group flex-1">
-                                    <label for="clientPhone">WhatsApp *</label>
-                                    <input type="tel" id="clientPhone" required placeholder="Ex: (51) 99999-9999">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Address Info (conditional) -->
-                        <div class="form-section" id="addressSection">
-                            <h4>Endereço de Entrega</h4>
+                    <!-- Customer Data -->
+                    <div class="checkout-section">
+                        <h3>Seus Dados</h3>
+                        <div class="form-row">
                             <div class="form-group">
-                                <label for="addressStreet">Rua / Avenida *</label>
-                                <input type="text" id="addressStreet" required placeholder="Ex: Rua Vicente da Fontoura">
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group flex-1">
-                                    <label for="addressNumber">Número *</label>
-                                    <input type="text" id="addressNumber" required placeholder="Ex: 1320">
-                                </div>
-                                <div class="form-group flex-2">
-                                    <label for="addressBairro">Bairro *</label>
-                                    <select id="addressBairro" required onchange="updateCheckoutPrice()">
-                                        <option value="" disabled selected>Selecione seu bairro...</option>
-                                    </select>
-                                </div>
+                                <label for="clientName">Seu Nome *</label>
+                                <input type="text" id="clientName" placeholder="Como podemos te chamar?" autocomplete="name">
                             </div>
                             <div class="form-group">
-                                <label for="addressRef">Complemento / Ponto de Referência</label>
-                                <input type="text" id="addressRef" placeholder="Ex: Apto 302, próximo à praça">
+                                <label for="clientPhone">WhatsApp com DDD *</label>
+                                <input type="tel" id="clientPhone" placeholder="(00) 00000-0000" autocomplete="tel">
                             </div>
                         </div>
-
-                        <!-- Payment Info -->
-                        <div class="form-section">
-                            <h4>Forma de Pagamento</h4>
-                            <div class="payment-options-grid">
-                                <label class="payment-card">
-                                    <input type="radio" name="payment-method" value="pix" checked onchange="togglePaymentFields()">
-                                    <div class="payment-card-content">
-                                        <span class="material-symbols-rounded">qr_code_2</span>
-                                        <span>Pix</span>
-                                    </div>
-                                </label>
-                                <label class="payment-card">
-                                    <input type="radio" name="payment-method" value="card" onchange="togglePaymentFields()">
-                                    <div class="payment-card-content">
-                                        <span class="material-symbols-rounded">credit_card</span>
-                                        <span>Cartão (Maquininha)</span>
-                                    </div>
-                                </label>
-                                <label class="payment-card">
-                                    <input type="radio" name="payment-method" value="cash" onchange="togglePaymentFields()">
-                                    <div class="payment-card-content">
-                                        <span class="material-symbols-rounded">payments</span>
-                                        <span>Dinheiro (-5% desc.)</span>
-                                    </div>
-                                </label>
-                            </div>
-                            
-                            <div id="cashChangeGroup" class="form-group mt-16 display-none">
-                                <label for="cashChange">Precisa de troco para quanto?</label>
-                                <input type="text" id="cashChange" placeholder="Ex: R$ 100,00">
-                            </div>
-                            
-                            <div id="pixInstructions" class="pix-info-box mt-16">
-                                <p><strong>Chave Pix:</strong> 658101070000140</p>
-                                <p class="text-sm">Envie o comprovante pelo WhatsApp após enviar o pedido para agilizar sua entrega.</p>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                
-                <div class="modal-footer checkout-footer">
-                    <div class="checkout-total-summary">
-                        <span class="label">Total a pagar:</span>
-                        <span class="price" id="checkoutTotalValue">R$ 0,00</span>
                     </div>
                     
-                    <button class="btn btn-success checkout-submit-btn" onclick="submitOrder()">
-                        <span class="material-symbols-rounded">send</span>
-                        Enviar no WhatsApp
-                    </button>
-                </div>
+                    <!-- Address Data (Delivery only) -->
+                    <div class="checkout-section" id="addressSection">
+                        <h3>Endereço de Entrega</h3>
+                        
+                        <div class="location-btn-wrapper" style="margin-bottom: 12px;">
+                            <button type="button" id="btnGetLocation" class="btn-get-location" onclick="captureCustomerLocation()">
+                                <span class="material-symbols-rounded" style="font-size: 18px;">my_location</span>
+                                <span>📍 USAR MINHA LOCALIZAÇÃO ATUAL</span>
+                            </button>
+                            <div id="locationStatus" class="location-status" style="display: none;"></div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group flex-2">
+                                <label for="addressStreet">Rua / Logradouro *</label>
+                                <input type="text" id="addressStreet" placeholder="Ex: Av. Principal">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="addressNumber">Número *</label>
+                                <input type="text" id="addressNumber" placeholder="Ex: 123">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="addressBairro">Bairro *</label>
+                                <select id="addressBairro" onchange="onNeighborhoodChange()">
+                                    <option value="" disabled selected>Selecione seu bairro</option>
+                                    <option value="centro">Centro - Taxa a combinar</option>
+                                </select>
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="addressRef">Ponto de Referência</label>
+                                <input type="text" id="addressRef" placeholder="Ex: Ao lado do mercado...">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Methods -->
+                    <div class="checkout-section">
+                        <h3>Forma de Pagamento</h3>
+                        <div class="payment-options">
+                            <label class="payment-card">
+                                <input type="radio" name="payment-method" value="pix" checked onchange="togglePaymentFields()">
+                                <div class="payment-content">
+                                    <span class="material-symbols-rounded">qr_code_2</span>
+                                    <span>Pix (Instantâneo)</span>
+                                </div>
+                            </label>
+                            
+                            <label class="payment-card">
+                                <input type="radio" name="payment-method" value="card" onchange="togglePaymentFields()">
+                                <div class="payment-content">
+                                    <span class="material-symbols-rounded">credit_card</span>
+                                    <span>Cartão (Maquininha)</span>
+                                </div>
+                            </label>
+                            
+                            <label class="payment-card">
+                                <input type="radio" name="payment-method" value="cash" onchange="togglePaymentFields()">
+                                <div class="payment-content">
+                                    <span class="material-symbols-rounded">payments</span>
+                                    <span>Dinheiro</span>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <!-- Change for cash -->
+                        <div class="form-group display-none" id="cashChangeGroup" style="margin-top: 10px;">
+                            <label for="cashChange">Precisa de troco para quanto?</label>
+                            <input type="text" id="cashChange" placeholder="Ex: R$ 50,00 ou Não preciso">
+                        </div>
+
+                        <div class="pix-info display-none" id="pixInstructions" style="margin-top: 10px; background: rgba(0, 189, 174, 0.08); border: 1px solid rgba(0, 189, 174, 0.3); border-radius: 8px; padding: 12px;">
+                            <div style="font-size: 13px; color: var(--text-main); font-weight: 600; margin-bottom: 4px;">
+                                🔑 Chave Pix (Celular): <strong id="checkoutPixKeyDisplay" style="color: #00bdae; font-size: 15px; font-weight: 800; user-select: all;">Consulte no WhatsApp</strong>
+                            </div>
+                            <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Faça o pagamento via Pix e envie o comprovante no WhatsApp ao finalizar o pedido.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit -->
+                    <div class="checkout-footer">
+                        <div class="checkout-total">
+                            <span>Total a Pagar:</span>
+                            <h4 id="checkoutTotalValue">R$ 0,00</h4>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-submit-order" onclick="submitOrder()">
+                            <span>Enviar Pedido para o WhatsApp</span>
+                            <span class="material-symbols-rounded">send</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+    </div>
 
-        <!-- NAV BAR FIXA (Rodapé) -->
-        <nav class="app-navbar">
-            <a href="#" class="navbar-item active" onclick="switchTab('home', this); return false;">
-                <div class="navbar-icon-wrapper">
-                    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                </div>
-                <span>Início</span>
-            </a>
-            
-            <a href="#" class="navbar-item" onclick="switchTab('menu', this); return false;">
-                <div class="navbar-icon-wrapper">
-                    <svg viewBox="0 0 24 24"><path d="M2 22h20V2H2v20zm2-18h16v14H4V4zm3 3h10v2H7V7zm0 4h10v2H7v-2zm0 4h10v2H7v-2z"/></svg>
-                </div>
-                <span>Cardápio</span>
-            </a>
-            
-            <a href="#" class="navbar-item" onclick="switchTab('cart', this); return false;">
-                <div class="navbar-icon-wrapper">
-                    <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
-                    <div class="nav-cart-badge" id="cartBadgeCount" style="display: none;">0</div>
-                </div>
-                <span>Carrinho</span>
-            </a>
-            
-            <a href="#" class="navbar-item" onclick="switchTab('orders', this); return false;">
-                <div class="navbar-icon-wrapper">
-                    <svg viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v-2zM7 11h10V9H7v2zm0-4h10V5H7v2z"/></svg>
-                </div>
-                <span>Pedidos</span>
-            </a>
-        </nav>
-        <span id="footerCompanyPhone" style="display: none;"></span>
+    <!-- Daily Promo Popup Modal -->
+    <div class="modal-overlay" id="promoModal">
+        <div class="modal-card promo-card">
+            <div class="promo-header">
+                <span class="material-symbols-rounded promo-icon">local_fire_department</span>
+                <h3>Promoção do Dia!</h3>
+                <button class="btn-close-circle" onclick="closePromoModal()">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="promo-modal-body">
+                <p>Confira nossos combos e ofertas especiais nas redes sociais!</p>
+            </div>
+            <div class="promo-modal-footer">
+                <button class="btn btn-primary" onclick="closePromoModal()" style="width: 100%; justify-content: center;">Ver Cardápio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Fixed Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+        <a href="#" class="bottom-nav-item active" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
+            <span class="material-symbols-rounded">home</span>
+            <span>Início</span>
+        </a>
+        <a href="#pizzas-tradicionais-section" class="bottom-nav-item" onclick="setActiveCategoryTab(event, 'pizzas-tradicionais-section'); return false;">
+            <span class="material-symbols-rounded">local_pizza</span>
+            <span>Cardápio</span>
+        </a>
+        <a href="#" class="bottom-nav-item" onclick="toggleCart(true); return false;">
+            <div class="bottom-nav-icon-wrapper">
+                <span class="material-symbols-rounded">shopping_bag</span>
+                <span class="bottom-nav-badge cart-badge-count">0</span>
+            </div>
+            <span>Carrinho</span>
+        </a>
+    </nav>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Global Loading Overlay -->
+    <div id="globalLoading" class="global-loading-overlay display-none">
+        <div class="loading-spinner-wrapper">
+            <div class="loading-spinner"></div>
+            <span id="loadingText">Carregando...</span>
+        </div>
     </div>
 
     <!-- Firebase SDK (Compat version) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <!-- Firebase Config -->
     <script src="firebase-config.js"></script>
-    <script src="firebase/firebase.js"></script>
-    
-    <!-- Utils & Services -->
-    <script src="utils/utils.js"></script>
-    <script src="services/config.service.js"></script>
-    <script src="services/products.service.js"></script>
-    <script src="services/cart.service.js"></script>
-    <script src="components/components.js"></script>
 
-    <!-- GSAP for Smooth Parallax and Micro-interactions -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <!-- Marketing Tracking Module -->
+    <script src="TrackingService.js?v=1"></script>
+
+    <!-- Pizza Engine Core Logic -->
+    <script src="PizzaEngine.js?v=2"></script>
 
     <!-- Core App Logic -->
-    <script src="app.js"></script>
+    <script src="app.js?v=18"></script>
+
+    <!-- PWA Master Initializer -->
+    <script src="pwa/pwa-init.js?v=2"></script>
 </body>
 </html>

@@ -1,0 +1,54 @@
+﻿# ==========================================================================
+# Apache / Locaweb Configuration - Roloff Lanches PWA
+# ==========================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Forçar HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# MIME Types para PWA
+<IfModule mod_mime.c>
+    AddType application/manifest+json .json
+    AddType application/manifest+json .webmanifest
+    AddType application/javascript .js
+    AddType text/css .css
+    AddType image/svg+xml .svg
+    AddType image/webp .webp
+    AddType font/woff2 .woff2
+</IfModule>
+
+# Controle Estrito de Cache para Service Worker, Manifesto e HTML
+<IfModule mod_headers.c>
+    # Service Worker e Manifesto NUNCA devem ser cacheados pelo navegador/proxy
+    <FilesMatch "^(sw\.js|manifest\.json)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+
+    # Arquivos HTML e JSON de dados sempre frescos
+    <FilesMatch "\.(html|htm|json)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+
+    # Scripts e CSS com revalidação
+    <FilesMatch "\.(js|css)$">
+        Header set Cache-Control "public, max-age=3600, must-revalidate"
+    </FilesMatch>
+
+    # Imagens e Fontes Estáticas
+    <FilesMatch "\.(png|jpg|jpeg|gif|webp|svg|ico|woff2?)$">
+        Header set Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
+    </FilesMatch>
+</IfModule>
+
+# Compressão GZIP / Deflate para alta velocidade
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json application/manifest+json image/svg+xml
+</IfModule>

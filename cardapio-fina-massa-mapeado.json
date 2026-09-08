@@ -1,0 +1,122 @@
+﻿{
+  "_meta": {
+    "status": "PRÃ‰VIA LOCAL â€” NÃƒO IMPORTADA",
+    "fonte": "G:\\Site fina massa\\piza.pdf",
+    "dataMapeamento": "2026-09-04",
+    "totalPaginas": 7,
+    "aviso": "Este arquivo Ã© apenas um mapeamento estruturado da leitura do PDF oficial. NÃƒO foi gravado no Firebase e NÃƒO altera o cardÃ¡pio ativo."
+  },
+  "estabelecimento": {
+    "nome": "Fina Massa Pizzaria",
+    "endereco": "R Cel. Alfredo Steglich 415, Nova PetrÃ³polis - RS",
+    "whatsapp": "(54) 999201102",
+    "modalidades": ["Delivery", "Retirada"]
+  },
+  "tamanhos": {
+    "media": {
+      "id": "media",
+      "nome": "MÃ©dia",
+      "medida": "30cm",
+      "fatias": 8,
+      "maxSabores": 2,
+      "precoTradicional": 59.00,
+      "precoEspecial": 69.00,
+      "observacoes": "AtÃ© 2 sabores. 8 fatias."
+    },
+    "grande": {
+      "id": "grande",
+      "nome": "Grande",
+      "medida": "35cm",
+      "fatias": 12,
+      "maxSabores": 3,
+      "precoTradicional": 69.00,
+      "precoEspecial": 79.00,
+      "observacoes": "AtÃ© 3 sabores. 12 fatias."
+    }
+  },
+  "pizzas_salgadas": {
+    "regrasBase": "Todas as pizzas levam molho de tomate, mussarela e orÃ©gano",
+    "tradicionais": [
+      { "numero": 1, "id": "salgada_trad_01_calabresa", "nome": "Calabresa", "ingredientes": "Calabresa", "classificacao": "tradicional" },
+      { "numero": 2, "id": "salgada_trad_02_frango_catupiry", "nome": "Frango com catupiry", "ingredientes": "Frango e catupiry", "classificacao": "tradicional" },
+      { "numero": 3, "id": "salgada_trad_03_bacon", "nome": "Bacon", "ingredientes": "Bacon e parmesÃ£o", "classificacao": "tradicional" },
+      { "numero": 4, "id": "salgada_trad_04_4_queijos", "nome": "4 queijos", "ingredientes": "Provolone, parmesÃ£o e catupiry", "classificacao": "tradicional" },
+      { "numero": 5, "id": "salgada_trad_05_4_queijos_bacon", "nome": "4 queijos com bacon", "ingredientes": "Provolone, parmesÃ£o, requeijÃ£o e bacon", "classificacao": "tradicional" },
+      { "numero": 6, "id": "salgada_trad_06_paulista", "nome": "Paulista", "ingredientes": "Calabresa, cebola e azeitona", "classificacao": "tradicional" },
+      { "numero": 7, "id": "salgada_trad_07_alho_oleo", "nome": "Alho e Ã³leo", "ingredientes": "Alho granulado e parmesÃ£o", "classificacao": "tradicional" },
+      { "numero": 8, "id": "salgada_trad_08_basca", "nome": "Basca", "ingredientes": "Alho granulado, tomate picado e bacon", "classificacao": "tradicional" },
+      { "numero": 9, "id": "salgada_trad_09_marguerita", "nome": "Marguerita", "ingredientes": "Tomate fatiado, parmesÃ£o e manjericÃ£o", "classificacao": "tradicional" },
+      { "numero": 10, "id": "salgada_trad_10_milho", "nome": "Milho", "ingredientes": "Milho e requeijÃ£o", "classificacao": "tradicional" },
+      { "numero": 11, "id": "salgada_trad_11_brocolis", "nome": "BrÃ³colis", "ingredientes": "BrÃ³colis e requeijÃ£o", "classificacao": "tradicional" },
+      { "numero": 12, "id": "salgada_trad_12_brocolis_especial", "nome": "BrÃ³colis especial", "ingredientes": "BrÃ³colis, alho granulado e bacon", "classificacao": "tradicional", "nota": "Aparece na seÃ§Ã£o tradicional do PDF apesar de conter especial no nome" },
+      { "numero": 14, "id": "salgada_trad_14_bacon_especial", "nome": "Bacon especial", "ingredientes": "Bacon, milho e cheddar", "classificacao": "tradicional", "nota": "NÃºmero 13 nÃ£o consta no PDF. Aparece na seÃ§Ã£o tradicional apesar de conter especial no nome" },
+      { "numero": 15, "id": "salgada_trad_15_frango_especial", "nome": "Frango especial", "ingredientes": "Frango, bacon e milho", "classificacao": "tradicional", "nota": "Aparece na seÃ§Ã£o tradicional apesar de conter especial no nome" },
+      { "numero": 16, "id": "salgada_trad_16_portuguesa", "nome": "Portuguesa", "ingredientes": "Presunto, pimentÃ£o, cebola, ovo e azeitona", "classificacao": "tradicional" },
+      { "numero": 17, "id": "salgada_trad_17_lombo_canadense", "nome": "Lombo canadense", "ingredientes": "Lombo e requeijÃ£o", "classificacao": "tradicional" }
+    ],
+    "especiais": [
+      { "numero": 1, "id": "salgada_esp_01_file", "nome": "FilÃ©", "ingredientes": "Iscas de carne e requeijÃ£o", "classificacao": "especial" },
+      { "numero": 2, "id": "salgada_esp_02_file_fritas", "nome": "FilÃ© com fritas", "ingredientes": "Iscas de carne, fritas e requeijÃ£o", "classificacao": "especial" },
+      { "numero": 3, "id": "salgada_esp_03_file_palha", "nome": "FilÃ© com palha", "ingredientes": "Iscas de carne e batata palha", "classificacao": "especial" },
+      { "numero": 4, "id": "salgada_esp_04_strogonoff", "nome": "Strogonoff", "ingredientes": "Strogonoff de carne e batata palha", "classificacao": "especial" },
+      { "numero": 5, "id": "salgada_esp_05_gaucha", "nome": "GaÃºcha", "ingredientes": "Iscas de carne, cebola e barbecue", "classificacao": "especial" },
+      { "numero": 6, "id": "salgada_esp_06_diavola", "nome": "DiÃ¡vola", "ingredientes": "Pepperoni, cebola roxa e azeitona", "classificacao": "especial" },
+      { "numero": 7, "id": "salgada_esp_07_mafiosa", "nome": "Mafiosa", "ingredientes": "Pepperoni, cebola, pimentÃ£o e molho de pimenta", "classificacao": "especial" },
+      { "numero": 8, "id": "salgada_esp_08_doritos", "nome": "Doritos", "ingredientes": "Iscas de carne, cheddar e Doritos", "classificacao": "especial" },
+      { "numero": 9, "id": "salgada_esp_09_coracao", "nome": "CoraÃ§Ã£o", "ingredientes": "CoraÃ§Ã£o de galinha e requeijÃ£o", "classificacao": "especial" },
+      { "numero": 10, "id": "salgada_esp_10_coracao_alho", "nome": "CoraÃ§Ã£o com alho", "ingredientes": "CoraÃ§Ã£o de galinha, alho granulado e parmesÃ£o", "classificacao": "especial" },
+      { "numero": 11, "id": "salgada_esp_11_texas", "nome": "Texas", "ingredientes": "Pepperoni e provolone", "classificacao": "especial" },
+      { "numero": 12, "id": "salgada_esp_12_file_especial", "nome": "FilÃ© especial", "ingredientes": "FilÃ©, alho granulado e bacon", "classificacao": "especial" },
+      { "numero": 14, "id": "salgada_esp_14_gauchinha", "nome": "Gauchinha", "ingredientes": "Costela desfiada com mostarda", "classificacao": "especial", "nota": "NÃºmero 13 nÃ£o consta no PDF" },
+      { "numero": 15, "id": "salgada_esp_15_gauderia", "nome": "GaudÃ©ria", "ingredientes": "Costela desfiada, cebola, barbecue e queijo coalho", "classificacao": "especial" },
+      { "numero": 16, "id": "salgada_esp_16_moda_da_casa", "nome": "Moda da casa", "ingredientes": "Calabresa, ovo, fritas e cheddar", "classificacao": "especial" },
+      { "numero": 17, "id": "salgada_esp_17_lombo_abacaxi", "nome": "Lombo com abacaxi", "ingredientes": "NÃ£o informados explicitamente no PDF", "classificacao": "especial" }
+    ]
+  },
+  "pizzas_doces": {
+    "regrasBase": "Todas as pizzas levam creme de leite na base",
+    "tradicionais": [
+      { "numero": 1, "id": "doce_trad_01_choco_preto", "nome": "Choco preto", "ingredientes": "NÃ£o informados explicitamente no PDF", "classificacao": "tradicional" },
+      { "numero": 2, "id": "doce_trad_02_choco_branco", "nome": "Choco branco", "ingredientes": "NÃ£o informados explicitamente no PDF", "classificacao": "tradicional" },
+      { "numero": 3, "id": "doce_trad_03_romeu_julieta", "nome": "Romeu e Julieta", "ingredientes": "Goiabada e mussarela", "classificacao": "tradicional" },
+      { "numero": 4, "id": "doce_trad_04_confetes", "nome": "Confetes", "ingredientes": "Chocolate branco ou preto com confetes", "classificacao": "tradicional" }
+    ],
+    "especiais": [
+      { "numero": 1, "id": "doce_esp_01_morango_moreno", "nome": "Morango moreno", "ingredientes": "Choco preto com morango e creme de leite", "classificacao": "especial" },
+      { "numero": 2, "id": "doce_esp_02_branco_morango", "nome": "Branco c/ morango", "ingredientes": "Choco branco com morango", "classificacao": "especial" },
+      { "numero": 3, "id": "doce_esp_03_bombom", "nome": "Bombom", "ingredientes": "Choco branco ou preto com bombom", "classificacao": "especial" },
+      { "numero": 4, "id": "doce_esp_04_stikadinho", "nome": "Stikadinho", "ingredientes": "Choco preto, morango e stikadinho", "classificacao": "especial" },
+      { "numero": 5, "id": "doce_esp_05_banana_canela", "nome": "Banana c/ canela", "ingredientes": "Doce de leite, banana, mussarela e canela", "classificacao": "especial" },
+      { "numero": 6, "id": "doce_esp_06_branco_abacaxi", "nome": "Branco com abacaxi", "ingredientes": "NÃ£o informados explicitamente no PDF", "classificacao": "especial" }
+    ]
+  },
+  "bordas": [
+    { "id": "borda_requeijao_cremoso", "nome": "Requeijao cremoso", "preco": 13.00, "tipo": "salgada" },
+    { "id": "borda_cheddar", "nome": "Cheddar", "preco": 13.00, "tipo": "salgada" },
+    { "id": "borda_catupiry", "nome": "Catupiry", "preco": 16.00, "tipo": "salgada" },
+    { "id": "borda_choco_preto", "nome": "Choco preto", "preco": 13.00, "tipo": "doce" },
+    { "id": "borda_choco_branco", "nome": "Choco branco", "preco": 13.00, "tipo": "doce" },
+    { "id": "borda_doce_leite", "nome": "Doce de leite", "preco": 13.00, "tipo": "doce" }
+  ],
+  "calzones": {
+    "regraTamanho": "Todos os calzones tem o tamanho de meia pizza mÃ©dia",
+    "itens": [
+      { "numero": 1, "id": "calzone_01_quatro_queijos", "nome": "Quatro queijos", "ingredientes": "Mussarela, parmesÃ£o, provolone e requeijÃ£o", "preco": 37.00, "tipo": "salgado" },
+      { "numero": 2, "id": "calzone_02_file_cheddar", "nome": "FilÃ© com cheddar", "ingredientes": "Mussarela, iscas de carne e cheddar", "preco": 38.00, "tipo": "salgado" },
+      { "numero": 3, "id": "calzone_03_bacon", "nome": "Bacon", "ingredientes": "Mussarela, bacon, tomate e alho", "preco": 36.00, "tipo": "salgado" },
+      { "numero": 4, "id": "calzone_04_frango_requeijao", "nome": "Frango com requeijÃ£o", "ingredientes": "Mussarela, frango e requeijÃ£o", "preco": 32.00, "tipo": "salgado" },
+      { "numero": 5, "id": "calzone_05_costela_barbecue", "nome": "Costela com barbecue", "ingredientes": "Mussarela, costela desfiada e barbecue", "preco": 38.00, "tipo": "salgado" },
+      { "numero": 1, "id": "calzone_doce_01_choco", "nome": "Choco branco ou preto", "ingredientes": "Chocolate branco ou preto", "preco": 35.00, "tipo": "doce" }
+    ]
+  },
+  "bebidas": [
+    { "id": "bebida_coca_cola_2l", "nome": "Coca Cola 2l", "volume": "2 Litros", "preco": 16.00 },
+    { "id": "bebida_guarana_2l", "nome": "Guarana 2l", "volume": "2 Litros", "preco": 15.00 },
+    { "id": "bebida_coca_cola_600ml", "nome": "Coca Cola 600ml", "volume": "600ml", "preco": 10.00 },
+    { "id": "bebida_guarana_600ml", "nome": "Guarana 600ml", "volume": "600ml", "preco": 9.00 },
+    { "id": "bebida_coca_cola_lata", "nome": "Coca Cola lata", "volume": "Lata (nÃ£o especificado)", "preco": 6.00 },
+    { "id": "bebida_guarana_lata", "nome": "Guarana lata", "volume": "Lata (nÃ£o especificado)", "preco": 6.00 },
+    { "id": "bebida_agua_com_sem_gas", "nome": "Agua com ou s/ gÃ¡s", "volume": "Garrafa (nÃ£o especificado)", "preco": 4.00 },
+    { "id": "bebida_energetico_elev_2l", "nome": "Energetico Elev 2l", "volume": "2 Litros", "preco": 13.00 }
+  ]
+}

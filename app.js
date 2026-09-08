@@ -1,2495 +1,1833 @@
 /* ==========================================================================
-   Cardápio Data Structure - Pizzaria Drill
+   Fina Massa Pizzaria - Motor do CardÃ¡pio & Delivery Online
    ========================================================================== */
-let MENU_ITEMS = {
-    pizzas: [],
-    lanches: [],
-    calzones: [],
-    bebidas: [],
-    acais: []
-};
-let BORDAS = {};
 
-const SIZE_MAP = {
-    'brotinho': 'B',
-    'media': 'M',
-    'grande': 'G',
-    'familia': 'F'
-};
-
-const TAMANHO_NOMES = {
-    'brotinho': 'Brotinho (20cm)',
-    'media': 'Média (25cm)',
-    'grande': 'Grande (35cm)',
-    'familia': 'Família (40cm)'
-};
-
-const TAMANHO_REGRAS = {
-    'brotinho': { maxFlavors: 1, slices: 4, name: 'Brotinho' },
-    'media': { maxFlavors: 2, slices: 6, name: 'Média' },
-    'grande': { maxFlavors: 3, slices: 12, name: 'Grande' },
-    'familia': { maxFlavors: 4, slices: 16, name: 'Família' }
-};
-db = window.db || null;
-if (typeof firebase !== 'undefined' && typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey !== 'SUA_API_KEY') {
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    db = firebase.firestore();
+// Firebase Initialization (Centralizada e segura)
+if (typeof firebase !== 'undefined' && typeof firebaseConfig !== 'undefined' && typeof isFirebaseConfigured === 'function' && isFirebaseConfigured() && firebase.apps && firebase.apps.length === 0) {
+    firebase.initializeApp(firebaseConfig);
 }
 
-/* ==========================================================================
-   State Variables
-   ========================================================================== */
-let cart = [];
-let currentPizza = null;
+// Global State
+let menuData = null;
+let cart = []; // Array of cart items
 let checkoutType = 'delivery'; // 'delivery' or 'pickup'
-let isShopOpen = true; // Sincronizado do Firebase
-const DELIVERY_FEE = 10.00;
+let customerLocation = null;
+let currentCustomizingProduct = null;
+let customizerQuantity = 1;
 
-let CONFIG_SETTINGS = {
-    whatsapp: '5554996704189',
-    whatsappFormatted: '(54) 99670-4189'
+// State para Customizador Dinâmico de Produtos e Pizzas Fina Massa
+let currentConfiguredProduct = null;
+let currentConfiguredSelections = {};
+let currentConfiguredQuantity = 1;
+let currentConfiguredComment = '';
+
+// Storage key isolada para Fina Massa Pizzaria
+const CART_STORAGE_KEY = 'fina_massa_cart';
+
+// Fallback Menu Neutro â€” Fina Massa Pizzaria
+const DEFAULT_MENU_FALLBACK = {
+    "menu_items": {
+        "pizzas_salgadas": [],
+        "pizzas_doces": [],
+        "calzones": [],
+        "bebidas": []
+    },
+    "pizza_config": {
+        "sizes": {
+            "media": { "id": "media", "name": "MÃ©dia", "slices": 8, "maxFlavors": 2, "active": true, "description": "8 fatias â€¢ atÃ© 2 sabores" },
+            "grande": { "id": "grande", "name": "Grande", "slices": 12, "maxFlavors": 3, "active": true, "description": "12 fatias â€¢ atÃ© 3 sabores" }
+        },
+        "flavors": {},
+        "borders": {},
+        "extras": {},
+        "pricingRules": {
+            "default": "HIGHEST",
+            "available": ["HIGHEST", "AVERAGE"]
+        }
+    },
+    "adicionais": {},
+    "settings": {
+        "companyName": "Fina Massa Pizzaria",
+        "pixKey": "",
+        "slogan": "Pizzas Artesanais | Delivery & SalÃ£o",
+        "whatsapp": "",
+        "whatsappFormatted": "",
+        "address": "",
+        "operatingHours": "TerÃ§a a Domingo das 18h Ã s 23h30",
+        "deliveryFees": {},
+        "tracking": {
+            "metaPixelId": "",
+            "gtmId": "",
+            "ga4MeasurementId": "",
+            "googleAdsConversionId": ""
+        }
+    },
+    "promo_config": {
+        "show_popup": false,
+        "facebook_url": ""
+    }
 };
-
-function isItemPromoToday(item) {
-    if (!item) return false;
-    if (!item.isPromo) return false;
-    if (!item.promoDays || item.promoDays.length === 0) return true; // Se nenhum dia selecionado, vale todos os dias
-    
-    const diasSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-    const hoje = diasSemana[new Date().getDay()];
-    return item.promoDays.includes(hoje);
-}
-
-function isPromoEligibleForSize(item, sizeKey) {
-    if (!CONFIG_SETTINGS || !CONFIG_SETTINGS.promoActive) return false;
-    if (!isItemPromoToday(item)) return false;
-    
-    // Se desconto percentual estiver ativo, vale para qualquer tamanho!
-    if (CONFIG_SETTINGS.promoDiscountActive) return true;
-    
-    // Caso contrário, vale apenas para o tamanho configurado (ex: G)
-    return sizeKey === (CONFIG_SETTINGS.promoSize || 'G');
-}
-
-function getPromoPriceForProduct(product) {
-    let priceVal = parseFloat(product.price) || 0;
-    
-    // Se o item tiver um preço promocional fixo definido, usa ele direto!
-    if (product.promoPrice !== undefined && product.promoPrice !== null && product.promoPrice !== '') {
-        return parseFloat(product.promoPrice);
-    }
-    
-    // Caso contrário, calcula com base na porcentagem de desconto da categoria do item
-    if (CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && CONFIG_SETTINGS.promoDiscountActive) {
-        let discount = CONFIG_SETTINGS.promoDiscountPercent || 20; // fallback pizzas / global
-        
-        if (product.type === 'lanche') {
-            discount = CONFIG_SETTINGS.promoLanchesDiscountPercent || discount;
-        } else if (product.type === 'calzone') {
-            discount = CONFIG_SETTINGS.promoCalzonesDiscountPercent || discount;
-        } else if (product.type === 'bebida') {
-            discount = CONFIG_SETTINGS.promoBebidasDiscountPercent || discount;
-        }
-        
-        priceVal *= (1 - discount / 100);
-    }
-    
-    return priceVal;
-}
-
-let TAXAS_ENTREGA = {};
-function getDeliveryFeeForBairro(bairroName) {
-    if (!bairroName) return 10.00;
-    const key = bairroName.toLowerCase().trim().replace(/\s+/g, '-').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return TAXAS_ENTREGA[key] !== undefined ? TAXAS_ENTREGA[key].fee : 10.00;
-}
-
-function populateNeighborhoodDropdown() {
-    const select = document.getElementById('addressBairro');
-    if (!select) return;
-    
-    const currentVal = select.value;
-    select.innerHTML = '<option value="" disabled selected>Selecione seu bairro...</option>';
-    
-    Object.keys(TAXAS_ENTREGA).forEach(key => {
-        const item = TAXAS_ENTREGA[key];
-        const opt = document.createElement('option');
-        opt.value = key;
-        opt.textContent = `${item.name} - R$ ${item.fee.toFixed(2).replace('.', ',')}`;
-        select.appendChild(opt);
-    });
-    
-    if (currentVal && TAXAS_ENTREGA[currentVal]) {
-        select.value = currentVal;
-    }
-}
-
-function updateContactInfoUI() {
-    const footerPhone = document.getElementById('footerCompanyPhone');
-    if (footerPhone) {
-        footerPhone.innerHTML = `<span class="material-symbols-rounded">phone</span> ${CONFIG_SETTINGS.whatsappFormatted || CONFIG_SETTINGS.whatsapp}`;
-    }
-}
-
 /* ==========================================================================
-   Açaí Customizer & State Operations
-   ========================================================================== */
-let currentAcai = {
-    size: '300ml',
-    freeAdditions: [],
-    paidAdditions: [],
-    notes: '',
-    quantity: 1,
-    totalPrice: 17
-};
-
-let ACAI_FREE_ADDITIONS = [];
-let ACAI_PAID_5 = [];
-let ACAI_PAID_2_5 = [];
-function renderAcais() {
-    const acaisGrid = document.getElementById('acaisGrid');
-    if (!acaisGrid) return;
-    acaisGrid.innerHTML = '';
-    
-    const acais = MENU_ITEMS.acais || [
-        { id: "acai_300ml", name: "Açaí 300ml", description: "Escolha até 3 adicionais grátis inclusos no copo.", price: 17.00, image: "assets/acai_hero.png", size: "300ml", maxFree: 3 },
-        { id: "acai_500ml", name: "Açaí 500ml", description: "Escolha até 4 adicionais grátis inclusos no copo.", price: 24.00, image: "assets/acai_hero.png", size: "500ml", maxFree: 4 },
-        { id: "acai_700ml", name: "Açaí 700ml", description: "Escolha até 5 adicionais grátis inclusos no copo.", price: 30.00, image: "assets/acai_hero.png", size: "700ml", maxFree: 5 }
-    ];
-    
-    acais.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        
-        const imagePath = item.image || 'assets/acai_hero.png';
-        const descHTML = item.description ? `<p class="item-card-desc">${item.description}</p>` : '';
-        
-        card.innerHTML = `
-            <div class="item-card-image-wrapper">
-                <img src="${imagePath}" alt="${item.name}" loading="lazy">
-            </div>
-            <div class="item-card-content">
-                <h3 class="item-card-title">${item.name}</h3>
-                ${descHTML}
-                <div class="item-card-footer">
-                    <div class="item-card-price">
-                        <span class="price-value">R$ ${item.price.toFixed(2).replace('.', ',')}</span>
-                    </div>
-                    <button class="btn-add" onclick="openAcaiCustomizer('${item.size}')" title="Personalizar Açaí" style="background: linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%);">
-                        <span class="material-symbols-rounded">edit_note</span>
-                    </button>
-                </div>
-            </div>
-        `;
-        acaisGrid.appendChild(card);
-    });
-}
-
-function openAcaiCustomizer(sizeId) {
-    const modal = document.getElementById('acaiCustomizerModal');
-    if (!modal) return;
-    
-    currentAcai = {
-        size: sizeId || '300ml',
-        freeAdditions: [],
-        paidAdditions: [],
-        notes: '',
-        quantity: 1,
-        totalPrice: 0
-    };
-    
-    const radio = document.querySelector(`input[name="acai-size"][value="${currentAcai.size}"]`);
-    if (radio) radio.checked = true;
-    
-    const acaiNotesEl = document.getElementById('acaiNotes'); if (acaiNotesEl) acaiNotesEl.value = '';
-    document.getElementById('acaiCustomizerQty').innerText = '1';
-    
-    renderAcaiAdditionsLists();
-    onAcaiSizeChange();
-    
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeAcaiCustomizer() {
-    const modal = document.getElementById('acaiCustomizerModal');
-    if (modal) modal.classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-function onAcaiSizeChange() {
-    const checkedRadio = document.querySelector('input[name="acai-size"]:checked');
-    if (!checkedRadio) return;
-    
-    const size = checkedRadio ? checkedRadio.value : '300ml';
-    const maxFree = parseInt(checkedRadio.getAttribute('data-max-free'));
-    
-    currentAcai.size = size;
-    
-    const badge = document.getElementById('acaiCustomizerHeaderBadge');
-    if (badge) badge.innerText = size;
-    
-    const helperText = document.getElementById('acaiFreeLimitText');
-    if (helperText) {
-        helperText.innerText = `Selecione até ${maxFree} adicionais grátis`;
-    }
-    
-    if (currentAcai.freeAdditions.length > maxFree) {
-        currentAcai.freeAdditions = currentAcai.freeAdditions.slice(0, maxFree);
-    }
-    
-    updateAcaiCheckboxesState();
-    calculateAcaiPrice();
-}
-
-function renderAcaiAdditionsLists() {
-    const freeContainer = document.getElementById('acaiFreeAdditionsContainer');
-    const paid5Container = document.getElementById('acaiPaid5AdditionsContainer');
-    const paid25Container = document.getElementById('acaiPaid25AdditionsContainer');
-    
-    if (!freeContainer || !paid5Container || !paid25Container) return;
-    
-    freeContainer.innerHTML = '';
-    ACAI_FREE_ADDITIONS.forEach(name => {
-        const checked = currentAcai.freeAdditions.includes(name) ? 'checked' : '';
-        const label = document.createElement('label');
-        label.className = 'border-card';
-        label.innerHTML = `
-            <input type="checkbox" name="acai-free-add" value="${name}" onchange="handleAcaiFreeClick(this)" ${checked}>
-            <div class="border-card-content">
-                <span>${name}</span>
-                <span class="border-price">Grátis</span>
-            </div>
-        `;
-        freeContainer.appendChild(label);
-    });
-    
-    paid5Container.innerHTML = '';
-    ACAI_PAID_5.forEach(name => {
-        const checked = currentAcai.paidAdditions.some(a => a.name === name) ? 'checked' : '';
-        const label = document.createElement('label');
-        label.className = 'border-card';
-        label.innerHTML = `
-            <input type="checkbox" name="acai-paid-add" value="${name}" data-price="5" onchange="handleAcaiPaidClick(this)" ${checked}>
-            <div class="border-card-content">
-                <span>${name}</span>
-                <span class="border-price">+ R$ 5,00</span>
-            </div>
-        `;
-        paid5Container.appendChild(label);
-    });
-    
-    paid25Container.innerHTML = '';
-    ACAI_PAID_2_5.forEach(name => {
-        const checked = currentAcai.paidAdditions.some(a => a.name === name) ? 'checked' : '';
-        const label = document.createElement('label');
-        label.className = 'border-card';
-        label.innerHTML = `
-            <input type="checkbox" name="acai-paid-add" value="${name}" data-price="2.5" onchange="handleAcaiPaidClick(this)" ${checked}>
-            <div class="border-card-content">
-                <span>${name}</span>
-                <span class="border-price">+ R$ 2,50</span>
-            </div>
-        `;
-        paid25Container.appendChild(label);
-    });
-}
-
-function handleAcaiFreeClick(checkbox) {
-    const value = checkbox.value;
-    const checkedRadio = document.querySelector('input[name="acai-size"]:checked');
-    const maxFree = checkedRadio ? parseInt(checkedRadio.getAttribute('data-max-free')) : 3;
-    
-    if (checkbox.checked) {
-        if (currentAcai.freeAdditions.length >= maxFree) {
-            checkbox.checked = false;
-            alert(`Você pode escolher no máximo ${maxFree} adicionais grátis para este tamanho.`);
-            return;
-        }
-        currentAcai.freeAdditions.push(value);
-    } else {
-        const idx = currentAcai.freeAdditions.indexOf(value);
-        if (idx !== -1) currentAcai.freeAdditions.splice(idx, 1);
-    }
-    
-    updateAcaiVisualPills();
-    calculateAcaiPrice();
-}
-
-function handleAcaiPaidClick(checkbox) {
-    const value = checkbox.value;
-    const price = parseFloat(checkbox.getAttribute('data-price'));
-    
-    if (checkbox.checked) {
-        if (!currentAcai.paidAdditions.some(a => a.name === value)) {
-            currentAcai.paidAdditions.push({ name: value, price: price });
-        }
-    } else {
-        const idx = currentAcai.paidAdditions.findIndex(a => a.name === value);
-        if (idx !== -1) currentAcai.paidAdditions.splice(idx, 1);
-    }
-    
-    updateAcaiVisualPills();
-    calculateAcaiPrice();
-}
-
-function updateAcaiCheckboxesState() {
-    const checkboxes = document.querySelectorAll('input[name="acai-free-add"]');
-    checkboxes.forEach(cb => {
-        cb.checked = currentAcai.freeAdditions.includes(cb.value);
-    });
-    
-    const paidCbs = document.querySelectorAll('input[name="acai-paid-add"]');
-    paidCbs.forEach(cb => {
-        cb.checked = currentAcai.paidAdditions.some(a => a.name === cb.value);
-    });
-    
-    updateAcaiVisualPills();
-}
-
-function updateAcaiVisualPills() {
-    const container = document.getElementById('activeAcaiAdditionsPills');
-    if (!container) return;
-    container.innerHTML = '';
-    
-    currentAcai.freeAdditions.forEach(name => {
-        const pill = document.createElement('span');
-        pill.className = 'flavor-pill';
-        pill.style.background = 'rgba(74, 20, 140, 0.08)';
-        pill.style.color = '#4a148c';
-        pill.style.border = '1px solid rgba(74, 20, 140, 0.2)';
-        pill.innerHTML = `${name} <span class="pill-remove" onclick="removeAcaiPill('free', '${name}')">×</span>`;
-        container.appendChild(pill);
-    });
-    
-    currentAcai.paidAdditions.forEach(item => {
-        const pill = document.createElement('span');
-        pill.className = 'flavor-pill';
-        pill.style.background = '#e1bee7';
-        pill.style.color = '#4a148c';
-        pill.style.border = '1px solid #4a148c';
-        pill.innerHTML = `${item.name} (+R$ ${item.price.toFixed(2)}) <span class="pill-remove" onclick="removeAcaiPill('paid', '${item.name}')">×</span>`;
-        container.appendChild(pill);
-    });
-}
-
-function removeAcaiPill(type, name) {
-    if (type === 'free') {
-        const idx = currentAcai.freeAdditions.indexOf(name);
-        if (idx !== -1) currentAcai.freeAdditions.splice(idx, 1);
-    } else {
-        const idx = currentAcai.paidAdditions.findIndex(a => a.name === name);
-        if (idx !== -1) currentAcai.paidAdditions.splice(idx, 1);
-    }
-    
-    updateAcaiCheckboxesState();
-    calculateAcaiPrice();
-}
-
-function adjustAcaiQty(delta) {
-    let newQty = currentAcai.quantity + delta;
-    if (newQty < 1) newQty = 1;
-    currentAcai.quantity = newQty;
-    document.getElementById('acaiCustomizerQty').innerText = newQty;
-    calculateAcaiPrice();
-}
-
-function calculateAcaiPrice() {
-    const checkedRadio = document.querySelector('input[name="acai-size"]:checked');
-    if (!checkedRadio) return;
-    
-    const basePrice = parseFloat(checkedRadio.getAttribute('data-price'));
-    const paidSum = currentAcai.paidAdditions.reduce((sum, item) => sum + item.price, 0);
-    
-    const singlePrice = basePrice + paidSum;
-    currentAcai.totalPrice = singlePrice * currentAcai.quantity;
-    
-    const btn = document.getElementById('btnAddToOrderAcai');
-    if (btn) {
-        btn.innerText = `Adicionar ao Pedido — R$ ${currentAcai.totalPrice.toFixed(2).replace('.', ',')}`;
-    }
-}
-
-function addAcaiToOrder() {
-    const acaiNotesEl = document.getElementById('acaiNotes'); currentAcai.notes = acaiNotesEl ? acaiNotesEl.value.trim() : '';
-    
-    const cartItem = {
-        type: 'acai',
-        id: 'acai_' + currentAcai.size,
-        name: `Açaí ${currentAcai.size}`,
-        size: currentAcai.size,
-        freeAdditions: [...currentAcai.freeAdditions],
-        paidAdditions: currentAcai.paidAdditions.map(a => ({ name: a.name, price: a.price })),
-        notes: currentAcai.notes,
-        quantity: currentAcai.quantity,
-        singlePrice: currentAcai.totalPrice / currentAcai.quantity,
-        totalPrice: currentAcai.totalPrice
-    };
-    
-    cart = CartService.addToCart(cartItem);
-    updateCartUI();
-    closeAcaiCustomizer();
-    toggleCart(true);
-    
-    const badge = document.getElementById('cartBadgeCount');
-    if (badge) {
-        badge.classList.remove('animate-bounce');
-        void badge.offsetWidth;
-        badge.classList.add('animate-bounce');
-    }
-}
-
-/* ==========================================================================
-   Cart State Operations & Layout Rendering
-   ========================================================================== */
-let PIZZA_TYPES = [];
-
-/* ==========================================================================
-   Initialization / DOM Loading
+   Initialization
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
-    populateNeighborhoodDropdown();
-    updateContactInfoUI();
-    
-    // Render default menu immediately as a fallback
-    PIZZA_TYPES = getPizzaTypesDynamic();
-    renderMenu();
-
-    initMenuData();
-    initShopStatusListener();
-    setupPizzaCustomizerEvents();
-    setupNavigationTabs();
-    setupSubcategoryTabs();
-    loadCartFromLocalStorage();
-    initGSAPAnimations();
+    loadCartFromStorage();
+    fetchMenu();
+    listenToStoreStatus();
+    initTracking();
 });
 
-function initGSAPAnimations() {
-    if (typeof gsap !== 'undefined') {
-        gsap.registerPlugin(ScrollTrigger);
+function initTracking() {
+    if (typeof TrackingService !== 'undefined') {
+        const trConfig = menuData?.settings?.tracking || {};
+        TrackingService.init(trConfig);
+        TrackingService.trackPageView();
+    }
+}
 
-        // Header animations
-        gsap.from('.pizzeria-brand-wrapper', { opacity: 0, y: -50, duration: 1, ease: 'power3.out' });
-        gsap.from('.pizzeria-subtitle, .hero-slogan', { opacity: 0, y: 30, duration: 1, delay: 0.3, ease: 'power3.out' });
-        gsap.from('.hero-pizza-image', { opacity: 0, scale: 0.8, duration: 1.2, delay: 0.5, ease: 'back.out(1.7)' });
-
-        // Category Cards Scroll Animation
-        gsap.from('.size-intro-card', {
-            scrollTrigger: {
-                trigger: '.pizza-size-selector-intro',
-                start: 'top 90%',
-                once: true
-            },
-            opacity: 0,
-            y: 40,
-            stagger: 0.15,
-            duration: 0.8,
-            ease: 'power2.out'
+function listenToStoreStatus() {
+    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+        firebase.database().ref('status/isOpen').on('value', (snapshot) => {
+            const isOpen = snapshot.val();
+            updateStoreStatusUI(isOpen !== false);
         });
     }
 }
 
+function updateStoreStatusUI(isOpen) {
+    const badge = document.getElementById('statusBadge');
+    if (!badge) return;
+    if (isOpen) {
+        badge.className = 'status-badge open';
+        badge.innerHTML = '<span class="dot animate-pulse"></span> Aberto agora para pedidos';
+    } else {
+        badge.className = 'status-badge closed';
+        badge.innerHTML = '<span class="dot closed-dot"></span> Fechado no momento';
+    }
+}
+
 /* ==========================================================================
-   Tab Navigation & Category Switching
+   Data Fetching & Menu Synchronization
    ========================================================================== */
-function setupNavigationTabs() {
-    const tabs = document.querySelectorAll('.nav-tab');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            
-            const targetId = tab.getAttribute('data-target');
-            const sections = document.querySelectorAll('.menu-category-section');
-            sections.forEach(sec => sec.classList.remove('active'));
-            document.getElementById(targetId).classList.add('active');
-            
-            // Trigger scroll trigger refresh to adjust animations
-            if (typeof ScrollTrigger !== 'undefined') {
-                ScrollTrigger.refresh();
+function mergeDefaultMenuItems(remoteMenu) {
+    if (!remoteMenu || typeof remoteMenu !== 'object') return DEFAULT_MENU_FALLBACK;
+    const merged = { ...remoteMenu };
+    if (!merged.menu_items || typeof merged.menu_items !== 'object') {
+        merged.menu_items = {};
+    }
+
+    // NormalizaÃ§Ã£o: se o Firebase contiver menu_items.pizzas
+    if (merged.menu_items.pizzas && Array.isArray(merged.menu_items.pizzas)) {
+        if (!merged.menu_items.pizzas_salgadas || merged.menu_items.pizzas_salgadas.length === 0) {
+            merged.menu_items.pizzas_salgadas = merged.menu_items.pizzas.filter(p => p.category === 'salgadas');
+        }
+        if (!merged.menu_items.pizzas_doces || merged.menu_items.pizzas_doces.length === 0) {
+            merged.menu_items.pizzas_doces = merged.menu_items.pizzas.filter(p => p.category === 'doces');
+        }
+    }
+
+    if (!merged.pizza_prices && merged.pizza_config?.pizza_prices) {
+        merged.pizza_prices = merged.pizza_config.pizza_prices;
+    }
+    if (!merged.borders && merged.pizza_config?.borders) {
+        merged.borders = merged.pizza_config.borders;
+    }
+
+    if (!merged.adicionais || typeof merged.adicionais !== 'object') {
+        merged.adicionais = {};
+    }
+    if (!merged.settings || typeof merged.settings !== 'object') {
+        merged.settings = { ...DEFAULT_MENU_FALLBACK.settings };
+    }
+    return merged;
+}
+
+function fetchMenu() {
+    showGlobalLoading('Carregando cardÃ¡pio...');
+    
+    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+        const menuRef = firebase.database().ref('menu');
+        menuRef.on('value', (snapshot) => {
+            const val = snapshot.val();
+            if (val && val.menu_items && Object.keys(val.menu_items).length > 0) {
+                menuData = mergeDefaultMenuItems(val);
+            } else {
+                loadLocalMenuFallback();
+                return;
             }
-        });
-    });
-}
-
-function setupSubcategoryTabs() {
-    // Pizza Subcategory Tabs
-    const pizzaSubtabs = document.querySelectorAll('.pizza-subtabs .sub-tab');
-    if (pizzaSubtabs.length > 0) {
-        pizzaSubtabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                pizzaSubtabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                const sub = tab.getAttribute('data-sub');
-                if (typeof renderPizzasFlavorsGrid === 'function') renderPizzasFlavorsGrid(sub);
-            });
+            applyMenuSettings();
+            renderAllSections();
+            hideGlobalLoading();
+        }, (err) => {
+            console.warn("Erro ao ler Firebase, usando fallback:", err);
+            loadLocalMenuFallback();
         });
     } else {
-        // Fallback para caso não tenha a classe pizza-subtabs
-        const subtabs = document.querySelectorAll('.sub-tab:not(.lanches-subtabs .sub-tab)');
-        subtabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                subtabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                const sub = tab.getAttribute('data-sub');
-                if (typeof renderPizzasFlavorsGrid === 'function') renderPizzasFlavorsGrid(sub);
-            });
-        });
+        loadLocalMenuFallback();
     }
-    
-    // Lanches Subcategory Tabs
-    const lanchesSubtabs = document.querySelectorAll('.lanches-subtabs .sub-tab');
-    lanchesSubtabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            lanchesSubtabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            const sub = tab.getAttribute('data-sub');
-            if (typeof renderMenu === 'function') renderMenu();
+}
+
+function loadLocalMenuFallback() {
+    fetch('menu.json', { cache: 'no-cache' })
+        .then(res => res.json())
+        .then(data => {
+            menuData = mergeDefaultMenuItems(data || DEFAULT_MENU_FALLBACK);
+            applyMenuSettings();
+            renderAllSections();
+            hideGlobalLoading();
+        })
+        .catch(() => {
+            menuData = DEFAULT_MENU_FALLBACK;
+            applyMenuSettings();
+            renderAllSections();
+            hideGlobalLoading();
         });
-    });
+}
+
+function applyMenuSettings() {
+    const s = menuData?.settings || {};
+    
+    if (s.companyName) {
+        const hTitle = document.getElementById('headerCompanyName');
+        const fTitle = document.getElementById('footerCompanyName');
+        if (hTitle) hTitle.innerText = s.companyName;
+        if (fTitle) fTitle.innerText = s.companyName;
+    }
+    if (s.slogan) {
+        const hSlogan = document.getElementById('headerCompanySlogan');
+        const fSlogan = document.getElementById('footerCompanySlogan');
+        if (hSlogan) hSlogan.innerText = s.slogan;
+        if (fSlogan) fSlogan.innerText = s.slogan;
+    }
+    if (s.address) {
+        const fAddr = document.getElementById('footerAddress');
+        if (fAddr) fAddr.innerHTML = `<span class="material-symbols-rounded">location_on</span> ${s.address}`;
+    }
+    if (s.whatsappFormatted || s.whatsapp) {
+        const fPhone = document.getElementById('footerCompanyPhone');
+        if (fPhone) fPhone.innerHTML = `<span class="material-symbols-rounded">phone</span> ${s.whatsappFormatted || s.whatsapp}`;
+    }
+    if (s.operatingHours) {
+        const fHours = document.getElementById('footerHours');
+        if (fHours) fHours.innerHTML = `<span class="material-symbols-rounded">schedule</span> ${s.operatingHours}`;
+    }
+    if (s.pixKey) {
+        const pixDisplay = document.getElementById('checkoutPixKeyDisplay');
+        if (pixDisplay) pixDisplay.innerText = s.pixKey;
+    }
+
+    populateNeighborhoodSelect(s.deliveryFees);
+}
+
+function populateNeighborhoodSelect(deliveryFees) {
+    const select = document.getElementById('addressBairro');
+    if (!select) return;
+
+    select.innerHTML = '<option value="" disabled selected>Selecione seu bairro</option>';
+    
+    if (deliveryFees && typeof deliveryFees === 'object' && Object.keys(deliveryFees).length > 0) {
+        const sortedKeys = Object.keys(deliveryFees).sort((a, b) => {
+            const itemA = deliveryFees[a];
+            const itemB = deliveryFees[b];
+            const nameA = typeof itemA === 'object' && itemA ? (itemA.name || a) : a;
+            const nameB = typeof itemB === 'object' && itemB ? (itemB.name || b) : b;
+            return nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
+        });
+
+        let hasActive = false;
+        sortedKeys.forEach(key => {
+            const item = deliveryFees[key];
+            if (!item) return;
+
+            const isActive = typeof item === 'object' ? (item.active !== false) : true;
+            if (!isActive) return;
+
+            const name = (typeof item === 'object' && item.name) ? item.name : key;
+            const rawFee = typeof item === 'object' ? (item.fee !== undefined ? item.fee : (item.valor !== undefined ? item.valor : 0)) : item;
+            const fee = isNaN(Number(rawFee)) ? 0 : Number(rawFee);
+            const feeStr = fee === 0 ? 'GrÃ¡tis' : `R$ ${fee.toFixed(2).replace('.', ',')}`;
+
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.innerText = `${name} (${feeStr})`;
+            opt.dataset.fee = fee;
+            opt.dataset.id = key;
+            select.appendChild(opt);
+            hasActive = true;
+        });
+
+        if (!hasActive) {
+            const opt = document.createElement('option');
+            opt.value = "Centro";
+            opt.innerText = "Centro (Taxa a combinar)";
+            opt.dataset.fee = "0";
+            select.appendChild(opt);
+        }
+    } else {
+        const opt = document.createElement('option');
+        opt.value = "Centro";
+        opt.innerText = "Centro (Taxa a combinar)";
+        opt.dataset.fee = "0";
+        select.appendChild(opt);
+    }
 }
 
 /* ==========================================================================
-   Render Catalog Functions
+   Catalog Rendering
    ========================================================================== */
-function renderMenu() {
-    renderPromoSection();
-    renderRecommendedGrid(currentCategory || 'todos');
-    setupHeaderScrollEffect();
-}
-
-let currentCategory = 'todos';
-
-function filterCategory(category, buttonElement) {
-    const originalCategory = category;
-    
-    // Normalize category for internal logic
-    if (category === 'acais') category = 'acai';
-    
-    currentCategory = category;
-    
-    // Remove active class from all category chips
-    const chips = document.querySelectorAll(".category-chip");
-    chips.forEach(chip => chip.classList.remove("active"));
-    
-    // Add active class to selected chip
-    if (buttonElement) {
-        buttonElement.classList.add("active");
-    } else {
-        const targetChip = document.querySelector(`.category-chip[onclick*="'${originalCategory}'"]`);
-        if (targetChip) targetChip.classList.add("active");
+function resolveProductImage(item, categoryKey) {
+    if (item && item.image && typeof item.image === 'string' && item.image.trim() !== '') {
+        return item.image;
     }
-    
-    // Update the recommended title
-    const sectionTitle = document.querySelector("#recommendedSection .section-title");
-    if (sectionTitle) {
-        if (category === "todos") {
-            sectionTitle.innerHTML = "⭐ Recomendadas para você";
-        } else if (category === "mais-pedidos") {
-            sectionTitle.innerHTML = "🔥 Mais Pedidos do Cardápio";
-        } else if (category === "promocoes") {
-            sectionTitle.innerHTML = "🔥 Promoções Selecionadas";
-        } else {
-            const catNames = {
-                pizzas: "Pizzas Salgadas",
-                lanches: "Lanches",
-                calzones: "Pizzas Doces",
-                bebidas: "Bebidas",
-                acai: "Açaís",
-                acais: "Açaís"
-            };
-            sectionTitle.innerHTML = `⭐ Principais ${catNames[category] || category}`;
-        }
+    if (categoryKey === 'pizzas_salgadas') {
+        return 'assets/pizza_hero.png';
     }
-    
-    renderRecommendedGrid(category);
-}
-
-function handleAddToCartClick(itemId, type, size) {
-    if (type === 'pizza') {
-        openPizzaCustomizerWithFlavor(itemId);
-    } else if (type === 'acai') {
-        openAcaiCustomizer(size || '500ml');
-    } else if (type === 'lanche') {
-        addSimpleItemToCart(itemId, 'lanches');
-    } else if (type === 'calzone') {
-        addSimpleItemToCart(itemId, 'calzones');
-    } else if (type === 'bebida') {
-        addSimpleItemToCart(itemId, 'bebidas');
+    if (categoryKey === 'pizzas_doces') {
+        return 'assets/gourmet_doce_morango.png';
     }
-}
-
-function openPizzaCustomizerWithFlavor(flavorId) {
-    openPizzaCustomizer('grande');
-    handleFlavorSelection(flavorId);
-}
-
-function openPizzaCustomizerWithPromoFilter() {
-    openPizzaCustomizer('grande');
-    filterFlavorsCarousel('promo');
-}
-
-let promoCarouselIndex = 0;
-let promoCarouselInterval = null;
-
-function startPromoSectionCarousel() {
-    if (promoCarouselInterval) clearInterval(promoCarouselInterval);
-    
-    const track = document.getElementById('promoSectionTrack');
-    const slides = document.querySelectorAll('#promoSectionTrack .promo-section-slide');
-    const dots = document.querySelectorAll('.promo-section-dots .promo-section-dot');
-    
-    if (slides.length <= 1 || !track) return;
-    
-    promoCarouselIndex = 0;
-    
-    promoCarouselInterval = setInterval(() => {
-        promoCarouselIndex = (promoCarouselIndex + 1) % slides.length;
-        updatePromoCarouselPosition(track, slides.length, dots);
-    }, 4000);
-}
-
-function updatePromoCarouselPosition(track, totalSlides, dots) {
-    if (!track) return;
-    track.style.transform = `translateX(-${promoCarouselIndex * 100}%)`;
-    
-    dots.forEach((dot, idx) => {
-        if (idx === promoCarouselIndex) {
-            dot.classList.add('active');
-        } else {
-            dot.classList.remove('active');
-        }
-    });
-}
-
-function setPromoCarouselSlide(index) {
-    const track = document.getElementById('promoSectionTrack');
-    const slides = document.querySelectorAll('#promoSectionTrack .promo-section-slide');
-    const dots = document.querySelectorAll('.promo-section-dots .promo-section-dot');
-    
-    if (slides.length <= 1 || !track) return;
-    
-    promoCarouselIndex = index;
-    updatePromoCarouselPosition(track, slides.length, dots);
-    
-    startPromoSectionCarousel();
-}
-
-function openCategoryPromo(category) {
-    switchTab('menu');
-    filterCategory(category);
-    const recommendedSection = document.getElementById("recommendedSection");
-    if (recommendedSection) {
-        recommendedSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (categoryKey === 'calzones') {
+        return 'assets/pizza_media.jpg';
     }
+    if (categoryKey === 'bebidas') {
+        return 'assets/gourmet_bebida.png';
+    }
+    return 'assets/pizza_hero.png';
 }
 
-function renderPromoSection() {
-    const promoGrid = document.getElementById("promoGrid");
-    if (!promoGrid) return;
-    promoGrid.innerHTML = '';
-    
-    // Obter itens promocionais de hoje por categoria
-    const promoPizzas = (MENU_ITEMS.pizzas || []).filter(p => isItemPromoToday(p) && p.available !== false);
-    const promoLanches = (MENU_ITEMS.lanches || []).filter(l => isItemPromoToday(l) && l.available !== false);
-    const promoCalzones = (MENU_ITEMS.calzones || []).filter(c => isItemPromoToday(c) && c.available !== false);
-    const promoBebidas = (MENU_ITEMS.bebidas || []).filter(b => isItemPromoToday(b) && b.available !== false);
+function renderAllSections() {
+    // Categorias Oficiais Fina Massa
+    renderCatalogCategorySection('pizzas_tradicionais', 'pizzasTradicionaisGrid');
+    renderCatalogCategorySection('pizzas_especiais', 'pizzasEspeciaisGrid');
+    renderCategoryGrid('calzones', 'calzonesGrid');
+    renderCategoryGrid('bebidas', 'bebidasGrid');
 
-    const totalPromos = promoPizzas.length + promoLanches.length + promoCalzones.length + promoBebidas.length;
-    
-    const promoSection = document.getElementById("promoSection");
-    if (totalPromos === 0) {
-        if (promoSection) promoSection.style.display = 'none';
+    // Retrocompatibilidade para dados legados (caso existam no Firebase)
+    if (document.getElementById('pizzasSalgadasGrid')) {
+        renderPizzasSection('pizzas_salgadas', 'pizzasSalgadasGrid');
+    }
+    if (document.getElementById('pizzasDocesGrid')) {
+        renderPizzasSection('pizzas_doces', 'pizzasDocesGrid');
+    }
+
+    updateCartUI();
+}
+
+function renderCatalogCategorySection(categoryKey, gridElementId) {
+    const grid = document.getElementById(gridElementId);
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const itemsObj = menuData?.menu_items?.[categoryKey];
+    let items = [];
+    if (itemsObj) {
+        items = Array.isArray(itemsObj) ? itemsObj : Object.values(itemsObj);
+    }
+
+    if (items.length === 0) {
+        grid.innerHTML = '<p class="empty-category" style="color: var(--text-muted); font-size: 14px; grid-column: 1/-1; text-align: center; padding: 24px;">Nenhum produto cadastrado nesta categoria no momento.</p>';
         return;
-    } else {
-        if (promoSection) promoSection.style.display = 'block';
     }
-    
-    // Criar o container do carrossel
-    const carouselWrapper = document.createElement("div");
-    carouselWrapper.className = "promo-section-carousel";
-    
-    const track = document.createElement("div");
-    track.className = "promo-section-track";
-    track.id = "promoSectionTrack";
-    
-    let activeCategoriesCount = 0;
-    
-    // 1. Banner de Pizzas
-    if (promoPizzas.length > 0) {
-        activeCategoriesCount++;
-        const slide = document.createElement("div");
-        slide.className = "promo-section-slide";
-        
-        let discountText = '';
-        if (CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && CONFIG_SETTINGS.promoDiscountActive) {
-            discountText = `${CONFIG_SETTINGS.promoDiscountPercent || 20}% OFF`;
-        } else {
-            discountText = `R$ ${(parseFloat(CONFIG_SETTINGS.promoPrice) || 95.00).toFixed(0)}`;
-        }
-        
-        const flavorNames = promoPizzas.map(p => p.name);
-        
-        slide.innerHTML = `
-            <div class="promo-banner-single" style="background: linear-gradient(135deg, #b71c1c 0%, #1a0a0a 100%);">
-                <div class="promo-banner-single-header">
-                    <span class="promo-banner-single-tag">🍕 Promoção de Pizzas</span>
-                    <span class="promo-banner-single-discount">${discountText}</span>
-                </div>
-                <h3 class="promo-banner-single-title">Pizzas com Preço Especial Hoje!</h3>
-                <p class="promo-banner-single-flavors"><strong>Sabores:</strong> ${flavorNames.join(', ')}</p>
-                <div class="promo-banner-single-footer">
-                    <span>Toque para montar a sua pizza</span>
-                    <span class="material-symbols-rounded" style="font-size: 18px;">arrow_forward</span>
-                </div>
-            </div>
-        `;
-        slide.querySelector('.promo-banner-single').onclick = () => openPizzaCustomizerWithPromoFilter();
-        track.appendChild(slide);
-    }
-    
-    // 2. Banner de Lanches
-    if (promoLanches.length > 0) {
-        activeCategoriesCount++;
-        const slide = document.createElement("div");
-        slide.className = "promo-section-slide";
-        
-        let discountText = 'PROMO';
-        if (CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && CONFIG_SETTINGS.promoDiscountActive) {
-            discountText = `${CONFIG_SETTINGS.promoDiscountPercent || 20}% OFF`;
-        }
-        
-        const lancheNames = promoLanches.map(l => l.name);
-        
-        slide.innerHTML = `
-            <div class="promo-banner-single" style="background: linear-gradient(135deg, #e65100 0%, #1a0a00 100%);">
-                <div class="promo-banner-single-header">
-                    <span class="promo-banner-single-tag">🍔 Promoção de Lanches</span>
-                    <span class="promo-banner-single-discount">${discountText}</span>
-                </div>
-                <h3 class="promo-banner-single-title">Lanches Especiais do Dia!</h3>
-                <p class="promo-banner-single-flavors"><strong>Opções:</strong> ${lancheNames.join(', ')}</p>
-                <div class="promo-banner-single-footer">
-                    <span>Toque para ver os lanches</span>
-                    <span class="material-symbols-rounded" style="font-size: 18px;">arrow_forward</span>
-                </div>
-            </div>
-        `;
-        slide.querySelector('.promo-banner-single').onclick = () => openCategoryPromo('lanches');
-        track.appendChild(slide);
-    }
-    
-    // 3. Banner de Calzones
-    if (promoCalzones.length > 0) {
-        activeCategoriesCount++;
-        const slide = document.createElement("div");
-        slide.className = "promo-section-slide";
-        
-        let discountText = 'PROMO';
-        if (CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && CONFIG_SETTINGS.promoDiscountActive) {
-            discountText = `${CONFIG_SETTINGS.promoDiscountPercent || 20}% OFF`;
-        }
-        
-        const calzoneNames = promoCalzones.map(c => c.name);
-        
-        slide.innerHTML = `
-            <div class="promo-banner-single" style="background: linear-gradient(135deg, #ffd600 0%, #3e2723 100%);">
-                <div class="promo-banner-single-header">
-                    <span class="promo-banner-single-tag" style="color: #3e2723;">🥟 Calzones da Promo</span>
-                    <span class="promo-banner-single-discount">${discountText}</span>
-                </div>
-                <h3 class="promo-banner-single-title" style="color: #fff;">Calzones Recheados na Promoção!</h3>
-                <p class="promo-banner-single-flavors" style="color: rgba(255,255,255,0.7);"><strong>Opções:</strong> ${calzoneNames.join(', ')}</p>
-                <div class="promo-banner-single-footer" style="color: #ffd600;">
-                    <span>Toque para ver os calzones</span>
-                    <span class="material-symbols-rounded" style="font-size: 18px;">arrow_forward</span>
-                </div>
-            </div>
-        `;
-        slide.querySelector('.promo-banner-single').onclick = () => openCategoryPromo('calzones');
-        track.appendChild(slide);
-    }
-    
-    // 4. Banner de Bebidas
-    if (promoBebidas.length > 0) {
-        activeCategoriesCount++;
-        const slide = document.createElement("div");
-        slide.className = "promo-section-slide";
-        
-        let discountText = 'PROMO';
-        if (CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && CONFIG_SETTINGS.promoDiscountActive) {
-            discountText = `${CONFIG_SETTINGS.promoDiscountPercent || 20}% OFF`;
-        }
-        
-        const bebidaNames = promoBebidas.map(b => b.name);
-        
-        slide.innerHTML = `
-            <div class="promo-banner-single" style="background: linear-gradient(135deg, #0d47a1 0%, #0a0a1a 100%);">
-                <div class="promo-banner-single-header">
-                    <span class="promo-banner-single-tag">🥤 Bebidas da Promo</span>
-                    <span class="promo-banner-single-discount">${discountText}</span>
-                </div>
-                <h3 class="promo-banner-single-title">Bebidas com Desconto!</h3>
-                <p class="promo-banner-single-flavors"><strong>Opções:</strong> ${bebidaNames.join(', ')}</p>
-                <div class="promo-banner-single-footer">
-                    <span>Toque para ver as bebidas</span>
-                    <span class="material-symbols-rounded" style="font-size: 18px;">arrow_forward</span>
-                </div>
-            </div>
-        `;
-        slide.querySelector('.promo-banner-single').onclick = () => openCategoryPromo('bebidas');
-        track.appendChild(slide);
-    }
-    
-    carouselWrapper.appendChild(track);
-    
-    // Criar as bolinhas (dots) se houver mais de uma categoria em promoção
-    if (activeCategoriesCount > 1) {
-        const dotsContainer = document.createElement("div");
-        dotsContainer.className = "promo-section-dots";
-        
-        for (let i = 0; i < activeCategoriesCount; i++) {
-            const dot = document.createElement("div");
-            dot.className = `promo-section-dot ${i === 0 ? 'active' : ''}`;
-            dot.onclick = () => setPromoCarouselSlide(i);
-            dotsContainer.appendChild(dot);
-        }
-        carouselWrapper.appendChild(dotsContainer);
-    }
-    
-    promoGrid.appendChild(carouselWrapper);
-    
-    // Iniciar a animação automática do carrossel se houver mais de uma categoria ativa
-    if (activeCategoriesCount > 1) {
-        startPromoSectionCarousel();
-    } else {
-        if (promoCarouselInterval) clearInterval(promoCarouselInterval);
-    }
-}
 
-function renderBestSellers() {
-    const bestSellersScroll = document.getElementById("bestSellersScroll");
-    if (!bestSellersScroll) return;
-    bestSellersScroll.innerHTML = '';
-    
-    const bests = [];
-    
-    const pizzas = MENU_ITEMS.pizzas || [];
-    pizzas.forEach(p => {
-        if (p.bestSeller || (p.badge && p.badge.toLowerCase().includes('pedido'))) {
-            bests.push({ ...p, type: 'pizza', emoji: '🍕' });
-        }
-    });
-    
-    const lanches = MENU_ITEMS.lanches || [];
-    lanches.forEach(l => {
-        if (l.bestSeller || (l.badge && l.badge.toLowerCase().includes('pedido'))) {
-            bests.push({ ...l, type: 'lanche', emoji: '🍔' });
-        }
-    });
-    
-    if (bests.length === 0) {
-        if (pizzas.length > 0) bests.push({ ...pizzas[0], type: 'pizza', emoji: '🍕' });
-        if (lanches.length > 0) bests.push({ ...lanches[0], type: 'lanche', emoji: '🍔' });
-        const calzones = MENU_ITEMS.calzones || [];
-        if (calzones.length > 0) bests.push({ ...calzones[0], type: 'calzone', emoji: '🥟' });
-        const acais = MENU_ITEMS.acais || [];
-        if (acais.length > 0) bests.push({ ...acais[0], type: 'acai', emoji: '🍧' });
-    }
-    
-    bests.forEach(product => {
-        const itemContainer = document.createElement("div");
-        itemContainer.className = "scroll-item-lg";
-        
-        let priceText = "";
-        if (product.type === 'pizza') {
-            let pB = product.prices?.B || 0;
-            let pM = product.prices?.M || 0;
-            let pG = product.prices?.G || 0;
-            let pF = product.prices?.F || 0;
-            
-            const isEligiblePromo = CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && isItemPromoToday(product);
-            
-            if (isEligiblePromo && CONFIG_SETTINGS.promoDiscountActive) {
-                const factor = 1 - (CONFIG_SETTINGS.promoDiscountPercent || 20) / 100;
-                if (pB > 0) pB *= factor;
-                if (pM > 0) pM *= factor;
-                if (pG > 0) pG *= factor;
-                if (pF > 0) pF *= factor;
+    items.forEach(product => {
+        if (product.available === false) return;
+        const card = document.createElement('div');
+        card.className = 'menu-item-card';
+        card.onclick = (e) => {
+            if (!e.target.closest('button')) {
+                openGenericProductCustomizer(product.id, categoryKey);
             }
-            
-            const nonZero = [pB, pM, pG, pF].filter(p => p > 0);
-            const priceMin = nonZero.length > 0 ? Math.min(...nonZero) : 0;
-            const priceMax = nonZero.length > 0 ? Math.max(...nonZero) : 0;
-            
-            if (isEligiblePromo && !CONFIG_SETTINGS.promoDiscountActive) {
-                const promoPrice = parseFloat(CONFIG_SETTINGS.promoPrice) || 95.00;
-                priceText = `R$ ${promoPrice.toFixed(0)} (Promo)`;
-            } else if (priceMin === priceMax) {
-                priceText = `R$ ${priceMin.toFixed(0)}${isEligiblePromo ? ' (Promo)' : ''}`;
-            } else {
-                priceText = `R$ ${priceMin.toFixed(0)} a R$ ${priceMax.toFixed(0)}${isEligiblePromo ? ' (Promo)' : ''}`;
-            }
-        } else {
-            const isEligiblePromo = CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && isItemPromoToday(product);
-            const priceVal = isEligiblePromo ? getPromoPriceForProduct(product) : (parseFloat(product.price) || 0);
-            priceText = `R$ ${priceVal.toFixed(2).replace('.', ',')}${isEligiblePromo ? ' (Promo)' : ''}`;
-        }
-        
-        const imagePath = product.image || 'assets/pizza_hero.png';
-        
-        itemContainer.innerHTML = `
-            <div class="product-card">
-                <div class="product-image-wrapper">
-                    <img class="product-img" src="${imagePath}" alt="${product.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                    <div class="product-image-placeholder" style="display: none;">${product.emoji}</div>
-                </div>
-                <div class="product-body">
-                    <h4 class="product-title">${product.name}</h4>
-                    <p class="product-desc">${product.description || ''}</p>
-                    <div class="product-footer">
-                        <span class="product-price">${priceText}</span>
-                        <button class="add-to-cart-btn" onclick="handleAddToCartClick('${product.id}', '${product.type}')">+</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        bestSellersScroll.appendChild(itemContainer);
-    });
-}
+        };
 
-function renderRecommendedGrid(categoryFilter) {
-    const recommendedGrid = document.getElementById("recommendedGrid");
-    if (!recommendedGrid) return;
-    recommendedGrid.innerHTML = '';
-    
-    let list = [];
-    
-    // Normalize categoryFilter
-    if (categoryFilter === 'acais') categoryFilter = 'acai';
-    
-    if (categoryFilter === 'todos') {
-        const pizzas = (MENU_ITEMS.pizzas || []).filter(p => p.available !== false).map(p => ({ ...p, type: 'pizza', emoji: '🍕' }));
-        const lanches = (MENU_ITEMS.lanches || []).filter(l => l.available !== false).map(l => ({ ...l, type: 'lanche', emoji: '🍔' }));
-        const calzones = (MENU_ITEMS.calzones || []).filter(c => c.available !== false).map(c => ({ ...c, type: 'calzone', emoji: '🥟' }));
-        const bebidas = (MENU_ITEMS.bebidas || []).filter(b => b.available !== false).map(b => ({ ...b, type: 'bebida', emoji: '🥤' }));
-        const acais = (MENU_ITEMS.acais || []).filter(a => a.available !== false).map(a => ({ ...a, type: 'acai', emoji: '🍧', size: '500ml' }));
-        
-        const maxLen = Math.max(pizzas.length, lanches.length, calzones.length, bebidas.length, acais.length);
-        for (let i = 0; i < maxLen; i++) {
-            if (i < pizzas.length) list.push(pizzas[i]);
-            if (i < lanches.length) list.push(lanches[i]);
-            if (i < calzones.length) list.push(calzones[i]);
-            if (i < acais.length) list.push(acais[i]);
-            if (i < bebidas.length) list.push(bebidas[i]);
-        }
-    } else if (categoryFilter === 'mais-pedidos') {
-        const pizzas = (MENU_ITEMS.pizzas || []).filter(p => p.available !== false && (p.bestSeller || (p.badge && p.badge.toLowerCase().includes('pedido')))).map(p => ({ ...p, type: 'pizza', emoji: '🍕' }));
-        const lanches = (MENU_ITEMS.lanches || []).filter(l => l.available !== false && (l.bestSeller || (l.badge && l.badge.toLowerCase().includes('pedido')))).map(l => ({ ...l, type: 'lanche', emoji: '🍔' }));
-        const calzones = (MENU_ITEMS.calzones || []).filter(c => c.available !== false && (c.bestSeller || (c.badge && c.badge.toLowerCase().includes('pedido')))).map(c => ({ ...c, type: 'calzone', emoji: '🥟' }));
-        const acais = (MENU_ITEMS.acais || []).filter(a => a.available !== false && (a.bestSeller || (a.badge && a.badge.toLowerCase().includes('pedido')))).map(a => ({ ...a, type: 'acai', emoji: '🍧', size: '500ml' }));
-        list = [...pizzas, ...lanches, ...calzones, ...acais];
-        if (list.length === 0) {
-            const firstPizzas = (MENU_ITEMS.pizzas || []).slice(0, 3).map(p => ({ ...p, type: 'pizza', emoji: '🍕' }));
-            const firstLanches = (MENU_ITEMS.lanches || []).slice(0, 2).map(l => ({ ...l, type: 'lanche', emoji: '🍔' }));
-            list = [...firstPizzas, ...firstLanches];
-        }
-    } else if (categoryFilter === 'pizzas') {
-        list = (MENU_ITEMS.pizzas || []).filter(p => p.available !== false && p.category !== 'doces').map(p => ({ ...p, type: 'pizza', emoji: '🍕' }));
-    } else if (categoryFilter === 'lanches') {
-        list = (MENU_ITEMS.lanches || []).filter(l => l.available !== false).map(l => ({ ...l, type: 'lanche', emoji: '🍔' }));
-    } else if (categoryFilter === 'calzones' || categoryFilter === 'doces') {
-        const sweetPizzas = (MENU_ITEMS.pizzas || []).filter(p => p.available !== false && p.category === 'doces').map(p => ({ ...p, type: 'pizza', emoji: '🍕' }));
-        const simpleCalzones = (MENU_ITEMS.calzones || []).filter(c => c.available !== false).map(c => ({ ...c, type: 'calzone', emoji: '🍫' }));
-        list = [...sweetPizzas, ...simpleCalzones];
-    } else if (categoryFilter === 'bebidas') {
-        list = (MENU_ITEMS.bebidas || []).filter(b => b.available !== false).map(b => ({ ...b, type: 'bebida', emoji: '🥤' }));
-    } else if (categoryFilter === 'acai') {
-        list = (MENU_ITEMS.acais || []).filter(a => a.available !== false).map(a => ({ ...a, type: 'acai', emoji: '🍧', size: '500ml' }));
-    }
-    
-    list.forEach(product => {
-        const card = document.createElement("div");
-        card.className = "product-card";
-        
-        let priceText = "";
-        if (product.type === 'pizza') {
-            let pB = product.prices?.B || 0;
-            let pM = product.prices?.M || 0;
-            let pG = product.prices?.G || 0;
-            let pF = product.prices?.F || 0;
-            
-            const isEligiblePromo = CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && isItemPromoToday(product);
-            
-            if (isEligiblePromo && CONFIG_SETTINGS.promoDiscountActive) {
-                const factor = 1 - (CONFIG_SETTINGS.promoDiscountPercent || 20) / 100;
-                if (pB > 0) pB *= factor;
-                if (pM > 0) pM *= factor;
-                if (pG > 0) pG *= factor;
-                if (pF > 0) pF *= factor;
-            }
-            
-            const nonZero = [pB, pM, pG, pF].filter(p => p > 0);
-            const priceMin = nonZero.length > 0 ? Math.min(...nonZero) : 0;
-            const priceMax = nonZero.length > 0 ? Math.max(...nonZero) : 0;
-            
-            if (isEligiblePromo && !CONFIG_SETTINGS.promoDiscountActive) {
-                const promoPrice = parseFloat(CONFIG_SETTINGS.promoPrice) || 95.00;
-                priceText = `R$ ${promoPrice.toFixed(0)} (Promo)`;
-            } else if (priceMin === priceMax) {
-                priceText = `R$ ${priceMin.toFixed(0)}${isEligiblePromo ? ' (Promo)' : ''}`;
-            } else {
-                priceText = `R$ ${priceMin.toFixed(0)} a R$ ${priceMax.toFixed(0)}${isEligiblePromo ? ' (Promo)' : ''}`;
-            }
-        } else {
-            const isEligiblePromo = CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && isItemPromoToday(product);
-            const priceVal = isEligiblePromo ? getPromoPriceForProduct(product) : (parseFloat(product.price) || 0);
-            priceText = `R$ ${priceVal.toFixed(2).replace('.', ',')}${isEligiblePromo ? ' (Promo)' : ''}`;
-        }
-        
-        const imagePath = product.image || 'assets/pizza_hero.png';
-        const badgeHTML = product.badge ? `<span class="item-card-badge">${product.badge}</span>` : '';
-        const btnText = (product.type === 'pizza' || product.type === 'acai') ? 'Montar' : 'Comprar';
-        const btnIcon = (product.type === 'pizza') ? 'local_pizza' : ((product.type === 'acai') ? 'icecream' : 'shopping_basket');
-        
-        card.className = "item-card";
+        const displayPrice = product.displayPrice !== undefined ? product.displayPrice : (product.basePrice !== undefined ? product.basePrice : (product.price || 0));
+        const priceFormatted = Number(displayPrice).toFixed(2).replace('.', ',');
+        const imgSrc = resolveProductImage(product, categoryKey);
+
         card.innerHTML = `
-            <div class="item-card-image-wrapper">
-                ${badgeHTML}
-                <img src="${imagePath}" alt="${product.name}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                <div class="product-image-placeholder" style="display: none;">${product.emoji}</div>
+            <div class="product-image-wrapper">
+                <img src="${imgSrc}" alt="${product.name}" loading="lazy" onerror="this.src='assets/pizza_hero.png'">
+                ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
             </div>
-            <div class="item-card-content">
-                <h3 class="item-card-title">${product.name}</h3>
-                <p class="item-card-desc">${product.description || ''}</p>
-                <div class="item-card-footer">
-                    <div class="item-card-price">
-                        <span class="price-value" style="font-size: 15px; font-weight: 700; color: #ffffff;">${priceText}</span>
+            <div class="product-details">
+                <h3 class="product-title">${product.name}</h3>
+                <p class="product-desc">${product.description || ''}</p>
+                <div class="product-footer">
+                    <div class="product-price-wrapper">
+                        <span class="product-price-prefix">A partir de R$</span>
+                        <span class="product-price">${priceFormatted}</span>
                     </div>
-                    <button class="btn-add" onclick="handleAddToCartClick('${product.id}', '${product.type}', '${product.size || ''}')" title="${btnText}">
-                        <span class="material-symbols-rounded">${btnIcon}</span>
-                        <span>${btnText}</span>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openGenericProductCustomizer('${product.id}', '${categoryKey}')" title="Montar Pizza">
+                        <span class="material-symbols-rounded">local_pizza</span>
+                        <span>Montar</span>
                     </button>
                 </div>
             </div>
         `;
-        recommendedGrid.appendChild(card);
+        grid.appendChild(card);
     });
 }
 
-function switchTab(tabId, tabElement) {
-    const navItems = document.querySelectorAll(".navbar-item");
-    navItems.forEach(item => item.classList.remove("active"));
-    
-    if (tabElement) {
-        tabElement.classList.add("active");
-    } else {
-        const targetNav = document.querySelector(`.navbar-item[onclick*="'${tabId}'"]`);
-        if (targetNav) targetNav.classList.add("active");
+function renderPizzasSection(categoryKey, gridElementId) {
+    const grid = document.getElementById(gridElementId);
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const itemsObj = menuData?.menu_items?.[categoryKey];
+    let items = [];
+    if (itemsObj) {
+        items = Array.isArray(itemsObj) ? itemsObj : Object.values(itemsObj);
     }
-    
-    if (tabId === 'home') {
-        const mainContent = document.getElementById("mainContent");
-        if (mainContent) mainContent.scrollTo({ top: 0, behavior: "smooth" });
-        filterCategory('todos');
-    } else if (tabId === 'menu') {
-        filterCategory('pizzas');
-        const categoriesScroll = document.getElementById("categoriesScroll");
-        if (categoriesScroll) categoriesScroll.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (tabId === 'cart') {
-        toggleCart(true);
-        setTimeout(() => {
-            const navHome = document.querySelector(`.navbar-item[onclick*="'home'"]`);
-            if (navHome) {
-                navItems.forEach(item => item.classList.remove("active"));
-                navHome.classList.add("active");
+
+        if (items.length === 0) {
+        grid.innerHTML = '<p class="empty-category" style="color: var(--text-muted); font-size: 14px; grid-column: 1/-1; text-align: center; padding: 24px;">Nenhum produto cadastrado nesta categoria no momento.</p>';
+        return;
+    }
+
+    items.forEach(flavor => {
+        if (flavor.available === false) return;
+        const card = document.createElement('div');
+        card.className = 'menu-item-card';
+        card.onclick = (e) => {
+            if (!e.target.closest('button')) {
+                openPizzaCustomizer(flavor.id);
             }
-        }, 300);
-    } else if (tabId === 'orders') {
-        if (CONFIG_SETTINGS && CONFIG_SETTINGS.whatsapp) {
-            window.open(`https://wa.me/${CONFIG_SETTINGS.whatsapp}`, '_blank');
-        } else {
-            window.open('https://wa.me/5554996704189', '_blank');
-        }
-        setTimeout(() => {
-            const navHome = document.querySelector(`.navbar-item[onclick*="'home'"]`);
-            if (navHome) {
-                navItems.forEach(item => item.classList.remove("active"));
-                navHome.classList.add("active");
+        };
+
+        const prices = menuData?.pizza_prices || menuData?.pizza_config?.pizza_prices;
+        const isEsp = (flavor.categoryType || '').toLowerCase() === 'especial';
+        const basePrice = isEsp ? (prices?.media?.especial || 69) : (prices?.media?.tradicional || 59);
+        const displayPrice = flavor.price || basePrice;
+        const priceFormatted = Number(displayPrice).toFixed(2).replace('.', ',');
+        const imgSrc = flavor.image || (categoryKey === 'pizzas_doces' ? 'assets/gourmet_doce_morango.png' : 'assets/pizza_hero.png');
+
+        card.innerHTML = `
+            <div class="product-image-wrapper">
+                <img src="${imgSrc}" alt="${flavor.name}" loading="lazy" onerror="this.src='assets/pizza_hero.png'">
+                ${flavor.badge ? `<span class="product-badge">${flavor.badge}</span>` : ''}
+            </div>
+            <div class="product-details">
+                <h3 class="product-title">${flavor.name}</h3>
+                <p class="product-desc">${flavor.description || ''}</p>
+                <div class="product-footer">
+                    <div class="product-price-wrapper">
+                        <span class="product-price-prefix">A partir de R$</span>
+                        <span class="product-price">${priceFormatted}</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openPizzaCustomizer('${flavor.id}')" title="Montar Pizza">
+                        <span class="material-symbols-rounded">local_pizza</span>
+                        <span>Montar</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function renderCategoryGrid(categoryKey, gridElementId) {
+    const grid = document.getElementById(gridElementId);
+    if (!grid) return;
+
+    const itemsObj = menuData?.menu_items?.[categoryKey] || DEFAULT_MENU_FALLBACK.menu_items[categoryKey] || [];
+    const items = Array.isArray(itemsObj) ? itemsObj : Object.values(itemsObj);
+
+    grid.innerHTML = '';
+
+    if (items.length === 0) {
+        grid.innerHTML = '<p class="empty-category" style="color: var(--text-muted); font-size: 14px; grid-column: 1/-1; text-align: center; padding: 24px;">Nenhum item cadastrado nesta categoria no momento.</p>';
+        return;
+    }
+
+    items.forEach(item => {
+        if (item.available === false) return;
+        const card = document.createElement('div');
+        card.className = 'menu-item-card';
+        const hasOptions = (item.optionGroups && item.optionGroups.length > 0) || item.commentEnabled || item.type === 'pizza';
+        card.onclick = (e) => {
+            if (!e.target.closest('button')) {
+                if (hasOptions) {
+                    openGenericProductCustomizer(item.id, categoryKey);
+                } else {
+                    openProductCustomizer(categoryKey, item.id);
+                }
             }
-        }, 300);
-    }
+        };
+
+        const badgeHTML = item.badge ? `<span class="product-badge">${item.badge}</span>` : '';
+        const displayPrice = item.displayPrice !== undefined ? item.displayPrice : (item.price !== undefined ? item.price : (item.basePrice || 0));
+        const priceFormatted = Number(displayPrice || 0).toFixed(2).replace('.', ',');
+        const fallbackImg = resolveProductImage(item, categoryKey);
+        const imgSrc = resolveProductImage(item, categoryKey);
+
+        card.innerHTML = `
+            <div class="product-image-wrapper">
+                <img src="${imgSrc}" alt="${item.name}" loading="lazy" onerror="this.onerror=null; this.src='${fallbackImg}'">
+                ${badgeHTML}
+            </div>
+            <div class="product-details">
+                <h3 class="product-title">${item.name}</h3>
+                <p class="product-desc">${item.description || ''}</p>
+                <div class="product-footer">
+                    <div class="product-price-wrapper">
+                        <span class="product-price-prefix">R$</span>
+                        <span class="product-price">${priceFormatted}</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="${hasOptions ? `openGenericProductCustomizer('${item.id}', '${categoryKey}')` : `openProductCustomizer('${categoryKey}', '${item.id}')`}" title="Personalizar e pedir">
+                        <span class="material-symbols-rounded">${hasOptions ? 'tune' : 'add'}</span>
+                        <span>${hasOptions ? 'Montar' : 'Pedir'}</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        grid.appendChild(card);
+    });
 }
 
-function openAddressModal() {
-    const modal = document.getElementById("addressModal");
-    if (modal) {
-        modal.classList.add("active");
-    }
-}
+/* ==========================================================================
+   Motor de Pizzas â€” IntegraÃ§Ã£o Centralizada com PizzaEngine.js
+   ========================================================================== */
+const DEFAULT_PIZZA_CONFIG = {
+    sizes: {
+        'media': { id: 'media', name: 'MÃ©dia', slices: 8, maxFlavors: 2, active: true, description: '8 fatias â€¢ atÃ© 2 sabores' },
+        'grande': { id: 'grande', name: 'Grande', slices: 12, maxFlavors: 3, active: true, description: '12 fatias â€¢ atÃ© 3 sabores' }
+    },
+    flavors: {},
+    borders: {},
+    extras: {}
+};
 
-function closeAddressModal() {
-    const modal = document.getElementById("addressModal");
-    if (modal) {
-        modal.classList.remove("active");
-    }
-}
-
-function saveAddress() {
-    const input = document.getElementById("addressInput");
-    const display = document.getElementById("addressDisplay");
+function getActivePizzaConfig() {
+    const remoteCfg = menuData?.pizza_config || DEFAULT_MENU_FALLBACK.pizza_config || {};
+    const remotePrices = menuData?.pizza_prices || remoteCfg.pizza_prices;
     
-    if (input && display && input.value.trim() !== '') {
-        const val = input.value.trim();
-        display.innerText = val;
+    // Tamanhos configurados (MÃ©dia mÃ¡x 2 sabores, Grande mÃ¡x 3 sabores)
+    const sizes = Object.assign({}, DEFAULT_PIZZA_CONFIG.sizes, remoteCfg.sizes || {});
         
-        const checkoutAddressInput = document.getElementById("addressStreet");
-        if (checkoutAddressInput) {
-            checkoutAddressInput.value = val;
-        }
-        
-        alert("Endereço de entrega atualizado!");
-        closeAddressModal();
-    }
-}
-
-function setupHeaderScrollEffect() {
-    const mainContent = document.getElementById("mainContent");
-    const header = document.getElementById("appHeader");
-    
-    if (mainContent && header) {
-        mainContent.addEventListener("scroll", () => {
-            if (mainContent.scrollTop > 10) {
-                header.classList.add("scrolled");
-            } else {
-                header.classList.remove("scrolled");
+    // Sabores configurados vindos do cardÃ¡pio / pizza_config
+    let flavors = Object.assign({}, remoteCfg.flavors || {});
+    const salgadas = menuData?.menu_items?.pizzas_salgadas || [];
+    const doces = menuData?.menu_items?.pizzas_doces || [];
+    const all = [
+        ...(Array.isArray(salgadas) ? salgadas : Object.values(salgadas)),
+        ...(Array.isArray(doces) ? doces : Object.values(doces))
+    ];
+    if (all.length > 0) {
+        all.forEach(f => {
+            if (f && f.id) {
+                const isEsp = (f.categoryType || '').toLowerCase() === 'especial';
+                const basePrice = isEsp ? (remotePrices?.media?.especial || 69) : (remotePrices?.media?.tradicional || 59);
+                flavors[f.id] = {
+                    ...f,
+                    price: typeof f.price === 'number' && f.price > 0 ? f.price : basePrice
+                };
             }
         });
     }
-}
-
-// Bind to window to allow HTML onclick access
-window.filterCategory = filterCategory;
-window.handleAddToCartClick = handleAddToCartClick;
-window.switchTab = switchTab;
-window.openAddressModal = openAddressModal;
-window.closeAddressModal = closeAddressModal;
-window.saveAddress = saveAddress;
-
-function setupPizzaCustomizerEvents() {
-    const form = document.getElementById('pizzaCustomizerForm');
-    if (!form) return;
     
-    // Listen for size changes to adjust rules/flavors
-    form.addEventListener('change', (e) => {
-        if (e.target.name === 'pizza-size') {
-            onSizeChange();
-        } else if (e.target.name === 'pizza-flavor' || e.target.name === 'pizza-border') {
-            calculateCustomizerPrice();
-        }
+    // Bordas configuradas
+    const rawBorders = menuData?.borders || remoteCfg.borders || {};
+    const borders = {};
+    Object.keys(rawBorders).forEach(bId => {
+        const b = rawBorders[bId];
+        borders[bId] = {
+            id: bId,
+            name: b.name || bId,
+            price: Number(b.price || 0),
+            available: b.available !== false
+        };
     });
+    if (!borders['sem-borda']) {
+        borders['sem-borda'] = { id: 'sem-borda', name: 'Sem Borda', price: 0, available: true };
+    }
+        
+    // Extras configurados
+    const extras = Object.assign({}, remoteCfg.extras || {});
+        
+    return { sizes, flavors, borders, extras };
 }
 
-function openPizzaCustomizer(sizeId) {
-    const modal = document.getElementById('customizerModal');
-    
-    // Set customizer initial pizza state
-    currentPizza = {
-        size: sizeId,
-        selectedFlavors: [],
-        border: 'sem-borda',
-        notes: '',
-        quantity: 1,
-        totalPrice: 0
-    };
-    
-    // Update radio select size
-    const radio = document.querySelector(`input[name="pizza-size"][value="${sizeId}"]`);
-    if (radio) radio.checked = true;
-    
-    // Reset inputs
-    const pizzaNotesEl = document.getElementById('pizzaNotes'); if (pizzaNotesEl) pizzaNotesEl.value = '';
-    document.getElementById('customizerQty').innerText = '1';
-    
-    // Reset carousel filter
-    currentFlavorsFilter = 'todas';
-    
-    // Check if there are active promos today
-    const hasPromosToday = CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && (MENU_ITEMS.pizzas || []).some(p => isItemPromoToday(p));
-    const tabPromo = document.getElementById('tabFilterPromo');
-    if (tabPromo) {
-        tabPromo.style.display = hasPromosToday ? 'inline-block' : 'none';
+let currentPizzaState = {
+    selectedSize: 'grande',
+    selectedFlavors: [],
+    // REGRA COMERCIAL PROVISÃ“RIA â€” AGUARDANDO CONFIRMAÃ‡ÃƒO DA FINA MASSA
+    pricingRule: 'HIGHEST',
+    selectedBorder: '',
+    selectedExtras: [],
+    quantity: 1,
+    notes: ''
+};
+
+function openPizzaCustomizer(preSelectedFlavorId) {
+    const config = getActivePizzaConfig();
+    const sizeKeys = Object.keys(config.sizes);
+    const flavorKeys = Object.keys(config.flavors);
+
+    if (flavorKeys.length === 0 || sizeKeys.length === 0) {
+        showToast('Nenhum sabor ou tamanho de pizza disponÃ­vel no momento.', 'info');
+        return;
     }
+
+    currentPizzaState.selectedSize = sizeKeys.includes('grande') ? 'grande' : (sizeKeys[0] || 'media');
     
-    onSizeChange();
+    if (preSelectedFlavorId && config.flavors[preSelectedFlavorId]) {
+        currentPizzaState.selectedFlavors = [preSelectedFlavorId];
+    } else if (flavorKeys.length > 0) {
+        currentPizzaState.selectedFlavors = [flavorKeys[0]];
+    } else {
+        currentPizzaState.selectedFlavors = [];
+    }
+
+    // REGRA COMERCIAL PROVISÃ“RIA â€” AGUARDANDO CONFIRMAÃ‡ÃƒO DA FINA MASSA
+    currentPizzaState.pricingRule = 'HIGHEST';
     
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    const borderKeys = Object.keys(config.borders);
+    currentPizzaState.selectedBorder = borderKeys.includes('sem-borda') ? 'sem-borda' : (borderKeys[0] || '');
+    currentPizzaState.selectedExtras = [];
+    currentPizzaState.quantity = 1;
+    currentPizzaState.notes = '';
+
+    const notesInput = document.getElementById('pizzaCustomNotes');
+    if (notesInput) notesInput.value = '';
+    const qtySpan = document.getElementById('pizzaCustomQty');
+    if (qtySpan) qtySpan.innerText = '1';
+
+    renderPizzaSizesList();
+    renderPizzaFlavorsList();
+    renderPizzaBordersList();
+    renderPizzaExtrasList();
+    updatePizzaPricePreview();
+
+    const modal = document.getElementById('pizzaCustomizerModal');
+    if (modal) modal.classList.add('active');
 }
 
 function closePizzaCustomizer() {
-    const modal = document.getElementById('customizerModal');
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
+    currentConfiguredProduct = null;
+    currentConfiguredSelections = {};
+    currentConfiguredComment = '';
+    currentConfiguredQuantity = 1;
+
+    const modal = document.getElementById('pizzaCustomizerModal');
+    if (modal) modal.classList.remove('active');
 }
 
-function onSizeChange() {
-    const sizeRadio = document.querySelector('input[name="pizza-size"]:checked'); const size = sizeRadio ? sizeRadio.value : 'media';
-    currentPizza.size = size;
-    
-    // Clear selected flavors when size changes
-    currentPizza.selectedFlavors = [];
-    
-    // Update header size badge
-    const headerBadge = document.getElementById('customizerHeaderBadge');
-    if (headerBadge) {
-        headerBadge.innerText = TAMANHO_REGRAS[size].name;
-    }
-    
-    // Set flavor rules
-    const rules = TAMANHO_REGRAS[size];
-    document.getElementById('flavorSelectionLimitText').innerText = `Selecione até ${rules.maxFlavors} sabores (Cobrado pelo maior valor)`;
-    
-    // Re-render carousel and borders
-    renderCustomizerFlavors();
-    renderCustomizerBorders();
-    calculateCustomizerPrice();
-    updateVisualPizza();
-}
-
-let currentFlavorsFilter = 'todas';
-
-function filterFlavorsCarousel(category) {
-    currentFlavorsFilter = category;
-    
-    // Update active tab styling
-    const tabs = document.querySelectorAll('#carouselFilterTabs .filter-tab');
-    tabs.forEach(tab => {
-        const action = tab.getAttribute('onclick');
-        if (action && action.includes(`'${category}'`)) {
-            tab.classList.add('active');
-        } else {
-            tab.classList.remove('active');
-        }
-    });
-    
-    renderCustomizerFlavors();
-}
-
-function updateCarouselFilterTabs(hasSalty, hasSweet) {
-    const tabs = document.querySelectorAll('#carouselFilterTabs .filter-tab');
-    tabs.forEach(tab => {
-        const action = tab.getAttribute('onclick');
-        if (!action) return;
-        const match = action.match(/'([^']+)'/);
-        if (!match) return;
-        const category = match[1];
-        if (hasSweet && category === 'salgadas') {
-            tab.style.opacity = '0.3';
-            tab.style.pointerEvents = 'none';
-        } else if (hasSalty && category === 'doces') {
-            tab.style.opacity = '0.3';
-            tab.style.pointerEvents = 'none';
-        } else {
-            tab.style.opacity = '1';
-            tab.style.pointerEvents = 'auto';
-        }
-    });
-}
-
-function renderCustomizerFlavors() {
-    const container = document.getElementById('customizerFlavorsList');
+function renderPizzaSizesList() {
+    const container = document.getElementById('pizzaSizesList');
     if (!container) return;
-    
     container.innerHTML = '';
-    
-    // Check if the current selection contains sweet or salty flavors
-    let hasSalty = false;
-    let hasSweet = false;
-    
-    if (currentPizza && currentPizza.selectedFlavors) {
-        currentPizza.selectedFlavors.forEach(flavorId => {
-            const flavorData = MENU_ITEMS.pizzas.find(p => p.id === flavorId);
-            if (flavorData) {
-                if (flavorData.category === 'doces') {
-                    hasSweet = true;
-                } else {
-                    hasSalty = true;
-                }
-            }
-        });
-    }
-    
-    // Update tabs compatibility
-    updateCarouselFilterTabs(hasSalty, hasSweet);
-    
-    // Filter flavors based on category selection AND sweet/salty restrictions
-    let items = MENU_ITEMS.pizzas.filter(p => p.available !== false);
-    
-    if (hasSweet) {
-        items = items.filter(p => p.category === 'doces');
-    } else if (hasSalty) {
-        items = items.filter(p => p.category === 'salgadas');
-    } else {
-        // Apply tab filter
-        if (currentFlavorsFilter === 'salgadas') {
-            items = items.filter(p => p.category === 'salgadas');
-        } else if (currentFlavorsFilter === 'doces') {
-            items = items.filter(p => p.category === 'doces');
-        }
-    }
-    
-    if (items.length === 0) {
-        container.innerHTML = '<p class="text-muted" style="padding: 20px; font-size: 13px;">Nenhum sabor disponível.</p>';
+
+    const config = getActivePizzaConfig();
+    Object.values(config.sizes).forEach(size => {
+        const isChecked = size.id === currentPizzaState.selectedSize ? 'checked' : '';
+        const row = document.createElement('label');
+        row.className = 'adicional-checkbox-row';
+        row.style.cursor = 'pointer';
+        row.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="radio" name="pizza_size_radio" value="${size.id}" ${isChecked} onchange="onPizzaSizeChange('${size.id}')">
+                <span style="font-weight: 600;">${size.name} (${size.slices} fatias)</span>
+            </div>
+            <span style="font-size: 12px; color: var(--text-muted);">${size.description || (size.slices + ' fatias â€¢ atÃ© ' + size.maxFlavors + ' sabores')}</span>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function renderPizzaFlavorsList() {
+    const container = document.getElementById('pizzaFlavorsList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const config = getActivePizzaConfig();
+    const size = config.sizes[currentPizzaState.selectedSize] || { maxFlavors: 3, name: 'PadrÃ£o' };
+    const maxFlavors = size.maxFlavors || (currentPizzaState.selectedSize === 'grande' ? 3 : 2);
+
+    const badge = document.getElementById('pizzaFlavorLimitBadge');
+    if (badge) badge.innerText = `Até ${maxFlavors} sabor(es)`;
+
+    const notice = document.getElementById('pizzaFlavorLimitNotice');
+    if (notice) notice.innerText = `Tamanho ${size.name}: selecione até ${maxFlavors} sabor(es) para sua pizza.`;
+
+    const flavorList = Object.values(config.flavors);
+    if (flavorList.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0;">Nenhum sabor cadastrado no momento.</p>';
         return;
     }
-    
-    items.forEach(item => {
-        const card = document.createElement('div');
-        const isActive = currentPizza.selectedFlavors.includes(item.id);
-        const flavorIndex = currentPizza.selectedFlavors.indexOf(item.id);
-        
-        card.className = `flavor-carousel-card ${isActive ? 'active' : ''}`;
-        card.onclick = () => handleFlavorSelection(item.id);
-        
-        let selectNumberHTML = '';
-        if (isActive) {
-            selectNumberHTML = `<span class="flavor-selection-number">${flavorIndex + 1}º</span>`;
-        }
-        
-        const catLabel = item.category === 'doces' ? 'Doce' : 'Salgada';
-        const sizeKey = SIZE_MAP[currentPizza.size] || 'M';
-        const isEligiblePromo = isPromoEligibleForSize(item, sizeKey);
-        
-        let priceVal = parseFloat((item.prices && item.prices[sizeKey]) || 0);
-        if (isEligiblePromo) {
-            if (CONFIG_SETTINGS.promoDiscountActive) {
-                priceVal *= (1 - (CONFIG_SETTINGS.promoDiscountPercent || 20) / 100);
-            } else {
-                priceVal = parseFloat(CONFIG_SETTINGS.promoPrice) || 95.00;
-            }
-        }
-            
-        const priceLabel = `R$ ${priceVal.toFixed(0)}`;
-        const promoLabel = isEligiblePromo ? ' <span style="color:#ffc107; font-weight:bold;">(Promo)</span>' : '';
-        
-        card.innerHTML = `
-            ${selectNumberHTML}
-            <div class="flavor-circle-wrapper">
-                <img src="${item.image}" alt="${item.name}" loading="lazy" onerror="this.src='assets/pizza_hero.png'">
+
+    flavorList.forEach(flavor => {
+        const isChecked = currentPizzaState.selectedFlavors.includes(flavor.id);
+        const row = document.createElement('label');
+        row.className = 'adicional-checkbox-row';
+        row.style.cursor = 'pointer';
+        row.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="pizza_flavor_cb" value="${flavor.id}" ${isChecked ? 'checked' : ''} onchange="onPizzaFlavorChange('${flavor.id}')">
+                <div>
+                    <div style="font-weight: 600; font-size: 14px;">${flavor.name}</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">${flavor.description || ''}</div>
+                </div>
             </div>
-            <span class="flavor-name">${item.name}</span>
-            <span class="flavor-category-badge">${catLabel} • ${priceLabel}${promoLabel}</span>
+            <strong style="font-size: 13px; color: var(--primary, #e65100); white-space: nowrap;">R$ ${Number(flavor.price || 0).toFixed(2).replace('.', ',')}</strong>
         `;
-        container.appendChild(card);
+        container.appendChild(row);
     });
 }
 
-function handleFlavorSelection(flavorId) {
-    const size = currentPizza.size;
-    const rules = TAMANHO_REGRAS[size];
-    const index = currentPizza.selectedFlavors.indexOf(flavorId);
-    
+function renderPizzaBordersList() {
+    const container = document.getElementById('pizzaBordersList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const config = getActivePizzaConfig();
+    Object.values(config.borders).forEach(border => {
+        const isChecked = border.id === currentPizzaState.selectedBorder ? 'checked' : '';
+        const priceLabel = border.price > 0 ? `<strong>+ R$ ${border.price.toFixed(2).replace('.', ',')}</strong>` : '<span style="color: var(--text-muted); font-size: 12px;">GrÃ¡tis</span>';
+
+        const row = document.createElement('label');
+        row.className = 'adicional-checkbox-row';
+        row.style.cursor = 'pointer';
+        row.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="radio" name="pizza_border_radio" value="${border.id}" ${isChecked} onchange="onPizzaBorderChange('${border.id}')">
+                <span>${border.name}</span>
+            </div>
+            ${priceLabel}
+        `;
+        container.appendChild(row);
+    });
+}
+
+function renderPizzaExtrasList() {
+    const container = document.getElementById('pizzaExtrasList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const config = getActivePizzaConfig();
+    Object.values(config.extras).forEach(extra => {
+        const isChecked = currentPizzaState.selectedExtras.some(e => e.id === extra.id);
+        const priceLabel = `<strong>+ R$ ${extra.price.toFixed(2).replace('.', ',')}</strong>`;
+
+        const row = document.createElement('label');
+        row.className = 'adicional-checkbox-row';
+        row.style.cursor = 'pointer';
+        row.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="pizza_extra_checkbox" value="${extra.id}" ${isChecked ? 'checked' : ''} onchange="onPizzaExtraChange()">
+                <span>${extra.name}</span>
+            </div>
+            ${priceLabel}
+        `;
+        container.appendChild(row);
+    });
+}
+
+function onPizzaSizeChange(sizeId) {
+    currentPizzaState.selectedSize = sizeId;
+    const config = getActivePizzaConfig();
+    const size = config.sizes[sizeId] || { maxFlavors: 2 };
+
+    if (currentPizzaState.selectedFlavors.length > size.maxFlavors) {
+        currentPizzaState.selectedFlavors = currentPizzaState.selectedFlavors.slice(0, size.maxFlavors);
+    }
+    renderPizzaFlavorsList();
+    updatePizzaPricePreview();
+}
+
+function onPizzaFlavorChange(flavorId) {
+    const config = getActivePizzaConfig();
+    const size = config.sizes[currentPizzaState.selectedSize] || { maxFlavors: 2 };
+    const maxFlavors = size.maxFlavors || 2;
+
+    const index = currentPizzaState.selectedFlavors.indexOf(flavorId);
     if (index > -1) {
-        // Remove flavor
-        currentPizza.selectedFlavors.splice(index, 1);
-    } else {
-        // Add flavor
-        if (currentPizza.selectedFlavors.length >= rules.maxFlavors) {
-            alert(`Para pizza ${TAMANHO_NOMES[size]}, o limite é de no máximo ${rules.maxFlavors} sabores.`);
+        if (currentPizzaState.selectedFlavors.length === 1) {
+            showToast('A pizza precisa ter pelo menos 1 sabor selecionado.', 'warning');
+            renderPizzaFlavorsList();
             return;
         }
-        currentPizza.selectedFlavors.push(flavorId);
-        
-        // Trigger entrance animation for this flavor slice
-        animateSliceAddition(flavorId);
+        currentPizzaState.selectedFlavors.splice(index, 1);
+    } else {
+        if (currentPizzaState.selectedFlavors.length >= maxFlavors) {
+            showToast(`O tamanho ${size.name} permite no mÃ¡ximo ${maxFlavors} sabor(es).`, 'warning');
+            renderPizzaFlavorsList();
+            return;
+        }
+        currentPizzaState.selectedFlavors.push(flavorId);
     }
-    
-    renderCustomizerFlavors();
-    renderCustomizerBorders();
-    calculateCustomizerPrice();
-    updateVisualPizza();
+
+    renderPizzaFlavorsList();
+    updatePizzaPricePreview();
 }
 
-function animateSliceAddition(flavorId) {
-    if (typeof gsap !== 'undefined') {
-        setTimeout(() => {
-            const sliceEl = document.querySelector(`.pizza-slice-overlay[data-flavor-id="${flavorId}"]`);
-            if (sliceEl) {
-                gsap.fromTo(sliceEl, 
-                    { scale: 1.5, rotation: -20, opacity: 0, y: -50 },
-                    { scale: 1, rotation: 0, opacity: 1, y: 0, duration: 0.6, ease: 'back.out(1.2)' }
-                );
-            }
-        }, 50);
-    }
+function onPizzaRuleChange(rule) {
+    currentPizzaState.pricingRule = rule;
+    updatePizzaPricePreview();
 }
 
-function updateVisualPizza() {
-    const display = document.getElementById('visualPizzaDisplay');
-    const activePills = document.getElementById('activeFlavorsPills');
-    if (!display) return;
-    
-    display.innerHTML = '';
-    if (activePills) activePills.innerHTML = '';
-    
-    const size = currentPizza.size;
-    const selected = currentPizza.selectedFlavors;
-    
-    // 1. Render Base Crust Background
-    const baseImg = document.createElement('div');
-    baseImg.className = 'pizza-crust-base';
-    const sizeBaseImage = size === 'media' ? 'assets/pizza_media.jpg' : 'assets/pizza_grande.jpg';
-    baseImg.style.backgroundImage = `url('${sizeBaseImage}')`;
-    display.appendChild(baseImg);
-    
-    // 2. Render Overlay Slices
-    if (selected.length === 0) {
-        const slice = document.createElement('img');
-        slice.className = 'pizza-slice-overlay';
-        slice.src = 'assets/pizza_hero.png';
-        slice.style.filter = 'saturate(0.7) brightness(0.95)';
-        display.appendChild(slice);
-        
-        if (activePills) {
-            activePills.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; font-style: italic;">Toque nos sabores abaixo para montar</span>`;
+function onPizzaBorderChange(borderId) {
+    currentPizzaState.selectedBorder = borderId;
+    updatePizzaPricePreview();
+}
+
+function onPizzaExtraChange() {
+    const checkboxes = document.querySelectorAll('input[name="pizza_extra_checkbox"]:checked');
+    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+    const config = getActivePizzaConfig();
+    currentPizzaState.selectedExtras = selectedIds.map(id => config.extras[id]).filter(Boolean);
+    updatePizzaPricePreview();
+}
+
+function adjustPizzaQty(delta) {
+    if (currentConfiguredProduct) {
+        let newQty = (currentConfiguredQuantity || 1) + delta;
+        if (newQty < 1) newQty = 1;
+        currentConfiguredQuantity = newQty;
+        const qtySpan = document.getElementById('pizzaCustomQty');
+        if (qtySpan) qtySpan.innerText = newQty;
+        updateConfiguredPricePreview();
+        return;
+    }
+
+    const newQty = (currentPizzaState.quantity || 1) + delta;
+    if (newQty < 1) return;
+    currentPizzaState.quantity = newQty;
+    const qtySpan = document.getElementById('pizzaCustomQty');
+    if (qtySpan) qtySpan.innerText = newQty;
+    updatePizzaPricePreview();
+}
+
+function updatePizzaPricePreview() {
+    if (typeof PizzaEngine === 'undefined') return;
+
+    const config = {
+        size: currentPizzaState.selectedSize,
+        flavors: currentPizzaState.selectedFlavors,
+        pricingRule: currentPizzaState.pricingRule,
+        border: currentPizzaState.selectedBorder,
+        extras: currentPizzaState.selectedExtras,
+        quantity: currentPizzaState.quantity
+    };
+
+    const activeConfig = getActivePizzaConfig();
+    const res = PizzaEngine.buildPizzaItem(config, activeConfig);
+
+    const unitElem = document.getElementById('pizzaModalUnitPrice');
+    const totalElem = document.getElementById('pizzaModalTotalPrice');
+    const btn = document.getElementById('addPizzaToOrderBtn') || document.getElementById('btnPizzaAddOrder');
+    const label = document.getElementById('pizzaAddButtonLabel') || document.getElementById('btnPizzaAddOrderLabel');
+
+    if (!res.success) {
+        if (unitElem) unitElem.innerText = 'R$ 0,00';
+        if (totalElem) totalElem.innerText = 'R$ 0,00';
+        if (label) label.innerText = res.error || 'ConfiguraÃ§Ã£o incompleta';
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
         }
         return;
     }
-    
-    let clips = [];
-    if (selected.length === 1) {
-        clips = ['none'];
-    } else if (selected.length === 2) {
-        clips = [
-            'polygon(0 0, 50% 0, 50% 100%, 0 100%)', // Left half
-            'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)' // Right half
-        ];
-    } else if (selected.length === 3) {
-        clips = [
-            'polygon(50% 50%, 50% 0%, 100% 0%, 100% 75%, 93.3% 75%)',
-            'polygon(50% 50%, 93.3% 75%, 100% 75%, 100% 100%, 0% 100%, 0% 75%, 6.7% 75%)',
-            'polygon(50% 50%, 6.7% 75%, 0% 75%, 0% 0%, 50% 0%)'
-        ];
+
+    if (unitElem) unitElem.innerText = `R$ ${res.item.singlePrice.toFixed(2).replace('.', ',')}`;
+    if (totalElem) totalElem.innerText = `R$ ${res.item.totalPrice.toFixed(2).replace('.', ',')}`;
+    if (label) label.innerText = `Adicionar ao Pedido â€” R$ ${res.item.totalPrice.toFixed(2).replace('.', ',')}`;
+    if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
     }
-    
-    selected.forEach((flavorId, index) => {
-        const flavorData = MENU_ITEMS.pizzas.find(p => p.id === flavorId);
-        if (!flavorData) return;
-        const flavorImage = flavorData.image || 'assets/pizza_hero.png';
-        
-        const slice = document.createElement('img');
-        slice.className = 'pizza-slice-overlay';
-        slice.src = flavorImage;
-        slice.style.clipPath = clips[index];
-        slice.setAttribute('data-flavor-id', flavorId);
-        display.appendChild(slice);
-        
-        // Add visual lines for dividers
-        if (selected.length > 1) {
-            if (selected.length === 2 && index === 0) {
-                const divider = document.createElement('div');
-                divider.className = 'pizza-slice-divider';
-                divider.style.position = 'absolute';
-                divider.style.left = '50%';
-                divider.style.top = '0';
-                divider.style.width = '2px';
-                divider.style.height = '100%';
-                divider.style.backgroundColor = 'rgba(212, 175, 55, 0.4)';
-                divider.style.boxShadow = '0 0 8px var(--primary)';
-                divider.style.transform = 'translateX(-50%)';
-                divider.style.zIndex = '3';
-                display.appendChild(divider);
-            } else if (selected.length === 3 && index === 0) {
-                // Line 1: Top vertical
-                const d1 = document.createElement('div');
-                d1.className = 'pizza-slice-divider';
-                d1.style.position = 'absolute';
-                d1.style.left = '50%';
-                d1.style.top = '0';
-                d1.style.width = '2px';
-                d1.style.height = '50%';
-                d1.style.backgroundColor = 'rgba(212, 175, 55, 0.4)';
-                d1.style.boxShadow = '0 0 8px var(--primary)';
-                d1.style.transform = 'translateX(-50%)';
-                d1.style.zIndex = '3';
-                display.appendChild(d1);
-                
-                // Line 2: Down-right at 120deg
-                const d2 = document.createElement('div');
-                d2.className = 'pizza-slice-divider';
-                d2.style.position = 'absolute';
-                d2.style.left = '50%';
-                d2.style.top = '50%';
-                d2.style.width = '2px';
-                d2.style.height = '50%';
-                d2.style.backgroundColor = 'rgba(212, 175, 55, 0.4)';
-                d2.style.boxShadow = '0 0 8px var(--primary)';
-                d2.style.transformOrigin = 'top center';
-                d2.style.transform = 'translateX(-50%) rotate(120deg)';
-                d2.style.zIndex = '3';
-                display.appendChild(d2);
-                
-                // Line 3: Down-left at 240deg
-                const d3 = document.createElement('div');
-                d3.className = 'pizza-slice-divider';
-                d3.style.position = 'absolute';
-                d3.style.left = '50%';
-                d3.style.top = '50%';
-                d3.style.width = '2px';
-                d3.style.height = '50%';
-                d3.style.backgroundColor = 'rgba(212, 175, 55, 0.4)';
-                d3.style.boxShadow = '0 0 8px var(--primary)';
-                d3.style.transformOrigin = 'top center';
-                d3.style.transform = 'translateX(-50%) rotate(240deg)';
-                d3.style.zIndex = '3';
-                display.appendChild(d3);
-            }
+}
+
+function addPizzaItemToCart() {
+    if (typeof PizzaEngine === 'undefined') {
+        showToast('Erro: Motor de Pizzas nÃ£o carregado.', 'error');
+        return;
+    }
+
+    const notesInput = document.getElementById('pizzaCustomNotes');
+    const notes = (notesInput && notesInput.value ? notesInput.value.trim() : '') || (currentPizzaState.notes || '').trim();
+
+    const config = {
+        size: currentPizzaState.selectedSize,
+        flavors: currentPizzaState.selectedFlavors,
+        pricingRule: currentPizzaState.pricingRule,
+        border: currentPizzaState.selectedBorder,
+        extras: currentPizzaState.selectedExtras,
+        notes: notes,
+        quantity: currentPizzaState.quantity
+    };
+
+    const activeConfig = getActivePizzaConfig();
+    const res = PizzaEngine.buildPizzaItem(config, activeConfig);
+
+    if (!res.success) {
+        showToast(res.error || 'Verifique as opÃ§Ãµes da pizza.', 'warning');
+        return;
+    }
+
+    cart.push(res.item);
+    saveCartToStorage();
+    closePizzaCustomizer();
+    updateCartUI();
+    toggleCart(true);
+    showToast(`${res.item.quantity}x ${res.item.name} adicionada ao pedido!`, 'success');
+
+    if (typeof TrackingService !== 'undefined') {
+        TrackingService.trackAddToCart(res.item);
+    }
+}
+
+/* ==========================================================================
+   Customizador Dinâmico de Produtos e Pizzas Fina Massa (optionGroups)
+   ========================================================================== */
+
+function openGenericProductCustomizer(productId, categoryKey) {
+    let product = null;
+    if (menuData && menuData.menu_items) {
+        if (categoryKey && menuData.menu_items[categoryKey]) {
+            const list = Array.isArray(menuData.menu_items[categoryKey]) ? menuData.menu_items[categoryKey] : Object.values(menuData.menu_items[categoryKey]);
+            product = list.find(p => String(p.id) === String(productId));
         }
-        
-        // Pills
-        if (activePills) {
-            const pill = document.createElement('div');
-            pill.className = 'flavor-pill';
-            
-            let label = '';
-            if (selected.length === 1) label = 'Inteira';
-            else if (selected.length === 2) label = `Metade ${index + 1}`;
-            else label = `1/3 Fatia ${index + 1}`;
-            
-            pill.innerHTML = `
-                <span class="slice-num">${index + 1}</span>
-                <span><strong>${label}:</strong> ${flavorData.name}</span>
-                <button type="button" class="btn-remove-pill" onclick="handleFlavorSelection('${flavorId}')" title="Remover sabor">
-                    <span class="material-symbols-rounded">close</span>
-                </button>
-            `;
-            activePills.appendChild(pill);
+        if (!product) {
+            Object.values(menuData.menu_items).forEach(itemsList => {
+                if (product) return;
+                const arr = Array.isArray(itemsList) ? itemsList : Object.values(itemsList || {});
+                const found = arr.find(p => String(p.id) === String(productId));
+                if (found) product = found;
+            });
+        }
+    }
+
+    if (!product) {
+        showToast('Produto não encontrado no cardápio.', 'warning');
+        return;
+    }
+
+    currentConfiguredProduct = product;
+    currentConfiguredQuantity = 1;
+    currentConfiguredComment = '';
+    currentConfiguredSelections = {};
+
+    // Inicializa seleções padrão obrigatórias se for crust (seleciona a 1ª opção por padrão)
+    const groups = product.optionGroups || [];
+    groups.forEach(group => {
+        currentConfiguredSelections[group.id] = [];
+        const isCrust = group.type === 'crust' || (group.title || '').toLowerCase().includes('preferência');
+        if (isCrust && group.options && group.options.length > 0) {
+            currentConfiguredSelections[group.id] = [group.options[0]];
         }
     });
+
+    // Atualiza modal headers
+    const modal = document.getElementById('pizzaCustomizerModal');
+    const title = document.getElementById('pizzaModalTitle');
+    const desc = document.getElementById('pizzaModalDesc');
+    const img = document.getElementById('pizzaModalHeaderImg');
+    const badge = document.getElementById('pizzaModalBadge');
+    const priceTag = document.getElementById('pizzaModalPriceTag');
+    const qtySpan = document.getElementById('pizzaCustomQty');
+    const notesInput = document.getElementById('pizzaCustomNotes');
+    const counter = document.getElementById('commentCharCounter');
+
+    if (title) title.innerText = product.name;
+    if (desc) desc.innerText = product.description || '';
+    if (img) img.src = resolveProductImage(product, categoryKey || product.category);
+    if (badge) badge.innerText = product.categoryName || (product.slices ? `${product.slices} Fatias` : 'Fina Massa');
+    const displayBase = product.displayPrice !== undefined ? product.displayPrice : (product.basePrice !== undefined ? product.basePrice : (product.price || 0));
+    if (priceTag) priceTag.innerText = `R$ ${Number(displayBase).toFixed(2).replace('.', ',')}`;
+    if (qtySpan) qtySpan.innerText = '1';
+    if (notesInput) notesInput.value = '';
+    if (counter) counter.innerText = '0 / 140';
+
+    // Renderiza grupos de opções dinamicamente
+    renderDynamicOptionGroups(product);
+    updateConfiguredPricePreview();
+
+    if (modal) modal.classList.add('active');
+}
+
+function renderDynamicOptionGroups(product) {
+    const container = document.getElementById('genericOptionGroupsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const groups = product.optionGroups || [];
+    if (groups.length === 0) {
+        return;
+    }
+
+    groups.forEach((group) => {
+        const groupCard = document.createElement('div');
+        groupCard.className = 'customizer-section';
+        groupCard.id = `group_card_${group.id}`;
+        groupCard.style.marginBottom = '18px';
+        groupCard.style.borderBottom = '1px solid var(--border-color, #eee)';
+        groupCard.style.paddingBottom = '16px';
+
+        const max = group.maxSelections || 1;
+        const isSingle = max === 1;
+
+        groupCard.innerHTML = `
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-color, #222);">${group.title || group.name}</h3>
+                    ${group.description ? `<p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">${group.description}</p>` : ''}
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" class="btn-clear-group" id="btn_clear_${group.id}" onclick="clearConfiguredGroup('${group.id}')" style="display: none; font-size: 11px; font-weight: 600; color: #c62828; background: rgba(198, 40, 40, 0.08); border: none; border-radius: 12px; padding: 3px 8px; cursor: pointer;" title="Remover escolha">Limpar</button>
+                    <span id="badge_group_${group.id}" style="font-size: 11px; font-weight: 700; background: rgba(0,0,0,0.06); padding: 3px 8px; border-radius: 12px;"></span>
+                </div>
+            </div>
+            <div class="group-options-list" id="group_options_${group.id}" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        `;
+
+        const optionsContainer = groupCard.querySelector(`#group_options_${group.id}`);
+
+        (group.options || []).forEach(opt => {
+            const optPrice = Number(opt.price || 0);
+            const priceLabel = optPrice > 0 
+                ? `<strong style="font-size: 13px; color: var(--primary, #74112B); white-space: nowrap;">+ R$ ${optPrice.toFixed(2).replace('.', ',')}</strong>` 
+                : '<span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Incluso</span>';
+
+            const optRow = document.createElement('div');
+            optRow.className = 'adicional-checkbox-row';
+            optRow.id = `opt_row_${group.id}_${opt.id}`;
+            optRow.setAttribute('role', 'button');
+            optRow.setAttribute('tabindex', '0');
+            optRow.style.display = 'flex';
+            optRow.style.alignItems = 'center';
+            optRow.style.justifyContent = 'space-between';
+            optRow.style.padding = '10px 12px';
+            optRow.style.border = '1px solid var(--border-color, #eee)';
+            optRow.style.borderRadius = '8px';
+            optRow.style.cursor = 'pointer';
+            optRow.style.background = '#fff';
+            optRow.style.transition = 'all 0.15s ease';
+
+            const inputType = isSingle ? 'radio' : 'checkbox';
+            const inputName = `opt_group_${group.id}`;
+            const imgHTML = opt.image 
+                ? `<img src="${opt.image}" alt="${opt.name}" loading="lazy" style="width: 46px; height: 46px; object-fit: cover; border-radius: 8px; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.12);" onerror="this.style.display='none'">` 
+                : '';
+
+            optRow.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px; flex: 1; padding-right: 8px; pointer-events: none;">
+                    <input type="${inputType}" id="opt_input_${group.id}_${opt.id}" name="${inputName}" value="${opt.id}" style="margin-top: 0; accent-color: var(--primary, #74112B); flex-shrink: 0; pointer-events: none;">
+                    ${imgHTML}
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px; color: var(--text-color, #222);">${opt.name}</div>
+                        ${opt.ingredients ? `<div style="font-size: 12px; color: var(--text-muted); line-height: 1.3; margin-top: 2px;">${opt.ingredients}</div>` : ''}
+                    </div>
+                </div>
+                <div style="pointer-events: none;">${priceLabel}</div>
+            `;
+
+            optRow.addEventListener('click', (e) => {
+                e.preventDefault();
+                onOptionSelectionChange(group, opt, isSingle);
+            });
+
+            optRow.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onOptionSelectionChange(group, opt, isSingle);
+                }
+            });
+
+            optionsContainer.appendChild(optRow);
+        });
+
+        container.appendChild(groupCard);
+        updateOptionGroupUI(group.id);
+    });
+}
+
+function updateOptionGroupUI(groupId) {
+    if (!currentConfiguredProduct) return;
+    const group = (currentConfiguredProduct.optionGroups || []).find(g => g.id === groupId);
+    if (!group) return;
+
+    const selections = currentConfiguredSelections[groupId] || [];
+    const max = group.maxSelections || 1;
+    const min = group.minSelections || (group.required ? 1 : 0);
+    const isSingle = max === 1;
+
+    (group.options || []).forEach(opt => {
+        const row = document.getElementById(`opt_row_${group.id}_${opt.id}`);
+        const input = document.getElementById(`opt_input_${group.id}_${opt.id}`);
+        const isSelected = selections.some(s => s.id === opt.id);
+
+        if (input) {
+            input.checked = isSelected;
+        }
+        if (row) {
+            row.style.border = isSelected ? '1.5px solid var(--primary, #74112B)' : '1px solid var(--border-color, #eee)';
+            row.style.background = isSelected ? 'rgba(116, 17, 43, 0.04)' : '#fff';
+            row.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        }
+    });
+
+    const badge = document.getElementById(`badge_group_${group.id}`);
+    const btnClear = document.getElementById(`btn_clear_${group.id}`);
+
+    if (badge) {
+        if (selections.length > 0) {
+            badge.innerText = isSingle ? '✓ Selecionado' : `✓ ${selections.length}/${max}`;
+            badge.style.color = '#2e7d32';
+            badge.style.background = 'rgba(46, 125, 50, 0.1)';
+        } else {
+            const badgeText = group.required ? (isSingle ? 'Obrigatório (1)' : `Obrigatório (${min})`) : 'Opcional';
+            const badgeColor = group.required ? 'var(--primary, #74112B)' : 'var(--text-muted, #888)';
+            badge.innerText = badgeText;
+            badge.style.color = badgeColor;
+            badge.style.background = 'rgba(0,0,0,0.06)';
+        }
+    }
+
+    if (btnClear) {
+        btnClear.style.display = selections.length > 0 ? 'inline-block' : 'none';
+    }
+}
+
+function onOptionSelectionChange(group, option, isSingle) {
+    if (!currentConfiguredSelections[group.id]) {
+        currentConfiguredSelections[group.id] = [];
+    }
+
+    const currentList = currentConfiguredSelections[group.id];
+    const isCurrentlySelected = currentList.some(s => s.id === option.id);
+
+    if (isSingle) {
+        if (isCurrentlySelected) {
+            // Clique na mesma opção já selecionada: remove/deseleciona
+            currentConfiguredSelections[group.id] = [];
+        } else {
+            // Troca ou seleciona o novo sabor
+            currentConfiguredSelections[group.id] = [option];
+            if (option.image) {
+                const modalImg = document.getElementById('pizzaModalHeaderImg');
+                if (modalImg) {
+                    modalImg.src = option.image;
+                }
+            }
+        }
+    } else {
+        const max = group.maxSelections || 999;
+        const idx = currentList.findIndex(s => s.id === option.id);
+        if (!isCurrentlySelected) {
+            if (currentList.length >= max) {
+                showToast(`Você pode selecionar no máximo ${max} opção(ões) neste grupo.`, 'warning');
+                return;
+            }
+            currentList.push(option);
+            if (option.image) {
+                const modalImg = document.getElementById('pizzaModalHeaderImg');
+                if (modalImg) {
+                    modalImg.src = option.image;
+                }
+            }
+        } else {
+            currentList.splice(idx, 1);
+        }
+    }
+
+    // Atualização cirúrgica in-place sem recriar o DOM
+    updateOptionGroupUI(group.id);
+    updateConfiguredPricePreview();
+}
+
+function clearConfiguredGroup(groupId) {
+    if (!currentConfiguredProduct) return;
+    currentConfiguredSelections[groupId] = [];
+    updateOptionGroupUI(groupId);
+    updateConfiguredPricePreview();
+}
+window.clearConfiguredGroup = clearConfiguredGroup;
+
+function onCommentTextInput(el) {
+    currentConfiguredComment = (el ? el.value : '').slice(0, 140);
+    const counter = document.getElementById('commentCharCounter');
+    if (counter) {
+        counter.innerText = `${currentConfiguredComment.length} / 140`;
+    }
+}
+
+function updateConfiguredPricePreview() {
+    if (!currentConfiguredProduct || typeof PizzaEngine === 'undefined') return;
+
+    const res = PizzaEngine.buildConfiguredItem(
+        currentConfiguredProduct,
+        currentConfiguredSelections,
+        currentConfiguredComment,
+        currentConfiguredQuantity
+    );
+
+    const btn = document.getElementById('addPizzaToOrderBtn');
+    const label = document.getElementById('pizzaAddButtonLabel');
+
+    if (!res.success) {
+        if (label) label.innerText = res.error || 'Configuração incompleta';
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+        }
+        return;
+    }
+
+    if (label) {
+        label.innerText = `Adicionar ao Pedido — R$ ${res.item.totalPrice.toFixed(2).replace('.', ',')}`;
+    }
+    if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    }
+}
+
+function addConfiguredItemToCart() {
+    if (!currentConfiguredProduct) {
+        addPizzaItemToCart();
+        return;
+    }
+
+    if (typeof PizzaEngine === 'undefined') {
+        showToast('Erro: Motor de Pizzas não carregado.', 'error');
+        return;
+    }
+
+    const notesInput = document.getElementById('pizzaCustomNotes');
+    const comment = notesInput ? notesInput.value.trim() : currentConfiguredComment;
+
+    const res = PizzaEngine.buildConfiguredItem(
+        currentConfiguredProduct,
+        currentConfiguredSelections,
+        comment,
+        currentConfiguredQuantity
+    );
+
+    if (!res.success) {
+        showToast(res.error || 'Verifique as opções selecionadas.', 'warning');
+        return;
+    }
+
+    cart.push(res.item);
+    saveCartToStorage();
+    closePizzaCustomizer();
+    updateCartUI();
+    toggleCart(true);
+    showToast(`${res.item.quantity}x ${res.item.name} adicionado ao pedido!`, 'success');
+
+    if (typeof TrackingService !== 'undefined') {
+        TrackingService.trackAddToCart(res.item);
+    }
+}
+
+function openProductCustomizer(categoryKey, itemId) {
+    const itemsObj = menuData?.menu_items?.[categoryKey] || DEFAULT_MENU_FALLBACK.menu_items[categoryKey] || [];
+    const items = Array.isArray(itemsObj) ? itemsObj : Object.values(itemsObj);
+    const item = items.find(i => String(i.id) === String(itemId));
+
+    if (!item) return;
+
+    currentCustomizingProduct = { ...item, categoryKey };
+    customizerQuantity = 1;
+
+    const modal = document.getElementById('customizerModal');
+    const title = document.getElementById('customizerTitle');
+    const desc = document.getElementById('customizerDesc');
+    const img = document.getElementById('customizerHeaderImg');
+    const qtySpan = document.getElementById('customizerQty');
+    const notesInput = document.getElementById('itemCustomNotes');
+
+    if (title) title.innerText = item.name;
+    if (desc) desc.innerText = item.description || 'Escolha os adicionais e observaÃ§Ãµes.';
+    if (img) img.src = resolveProductImage(item, categoryKey);
+    if (qtySpan) qtySpan.innerText = '1';
+    if (notesInput) notesInput.value = '';
+
+    // Render Adicionais Checklist
+    const adicionaisList = document.getElementById('customizerAdicionaisList');
+    if (adicionaisList) {
+        adicionaisList.innerHTML = '';
+        
+        // Prioriza adicionais especÃ­ficos configurados no item (ex: Cachorro Big), caso existam, ou fallback geral
+        let ads = item.adicionais || item.opcionais;
+        if (!ads || Object.keys(ads).length === 0) {
+            ads = menuData?.adicionais || DEFAULT_MENU_FALLBACK.adicionais || {
+                "maionese_caseira": { "name": "Maionese Caseira", "price": 0.0 },
+                "sache_mostarda": { "name": "Sache Mostarda", "price": 0.0 },
+                "sache_ketchup": { "name": "Sache Ketchup", "price": 0.0 }
+            };
+        }
+        
+        Object.keys(ads).forEach(adKey => {
+            const ad = ads[adKey];
+            const priceVal = Number(ad.price) || 0;
+            const priceLabel = priceVal > 0 ? `<strong>+ R$ ${priceVal.toFixed(2)}</strong>` : '';
+            
+            const adRow = document.createElement('label');
+            adRow.className = 'adicional-checkbox-row';
+            adRow.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" name="customizer_adicionais" value="${adKey}" data-name="${ad.name}" data-price="${priceVal}">
+                    <span>${ad.name}</span>
+                </div>
+                ${priceLabel}
+            `;
+            adicionaisList.appendChild(adRow);
+        });
+    }
+
+    if (modal) modal.classList.add('active');
+}
+
+function closeProductCustomizer() {
+    currentCustomizingProduct = null;
+    const modal = document.getElementById('customizerModal');
+    if (modal) modal.classList.remove('active');
 }
 
 function adjustCustomizerQty(delta) {
-    let qty = currentPizza.quantity + delta;
-    if (qty < 1) qty = 1;
-    currentPizza.quantity = qty;
-    document.getElementById('customizerQty').innerText = qty;
-    calculateCustomizerPrice();
+    customizerQuantity += delta;
+    if (customizerQuantity < 1) customizerQuantity = 1;
+    const span = document.getElementById('customizerQty');
+    if (span) span.innerText = customizerQuantity;
 }
 
-function calculateCustomizerPrice() {
-    if (currentPizza.selectedFlavors.length === 0) {
-        document.getElementById('btnAddToOrder').disabled = true;
-        document.getElementById('btnAddToOrder').innerText = 'Escolha pelo menos 1 sabor';
-        return;
-    }
-    
-    document.getElementById('btnAddToOrder').disabled = false;
-    
-    // Calcula o preço cobrado pelo maior valor entre os sabores selecionados para o tamanho atual
-    let maxFlavorPrice = 0;
-    const sizeKey = SIZE_MAP[currentPizza.size] || 'M'; // 'B', 'M', 'G', 'F'
-    
-    // Verifica se todos os sabores selecionados são promocionais
-    let allFlavorsArePromo = currentPizza.selectedFlavors.length > 0;
-    currentPizza.selectedFlavors.forEach(flavorId => {
-        const flavorData = MENU_ITEMS.pizzas.find(p => p.id === flavorId);
-        if (!flavorData || !isItemPromoToday(flavorData)) {
-            allFlavorsArePromo = false;
-        }
+function addCustomizedProductToCart() {
+    if (!currentCustomizingProduct) return;
+
+    const notesInput = document.getElementById('itemCustomNotes');
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    // Coleta adicionais selecionados
+    const checkedBoxes = document.querySelectorAll('input[name="customizer_adicionais"]:checked');
+    let selectedAdicionais = [];
+    let adicionaisTotal = 0;
+
+    checkedBoxes.forEach(cb => {
+        const adName = cb.dataset.name;
+        const adPrice = parseFloat(cb.dataset.price) || 0;
+        selectedAdicionais.push({ name: adName, price: adPrice });
+        adicionaisTotal += adPrice;
     });
-    
-    const isPromoActiveForSize = CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && (CONFIG_SETTINGS.promoDiscountActive || sizeKey === (CONFIG_SETTINGS.promoSize || 'G'));
-    
-    if (isPromoActiveForSize && allFlavorsArePromo) {
-        if (CONFIG_SETTINGS.promoDiscountActive) {
-            // Aplica desconto percentual ao preço normal de cada sabor selecionado e pega o maior
-            currentPizza.selectedFlavors.forEach(flavorId => {
-                const flavorData = MENU_ITEMS.pizzas.find(p => p.id === flavorId);
-                if (flavorData && flavorData.prices) {
-                    const price = (parseFloat(flavorData.prices[sizeKey]) || 0) * (1 - (CONFIG_SETTINGS.promoDiscountPercent || 20) / 100);
-                    if (price > maxFlavorPrice) {
-                        maxFlavorPrice = price;
-                    }
-                }
-            });
-        } else {
-            // Usa o preço promocional fixo
-            maxFlavorPrice = parseFloat(CONFIG_SETTINGS.promoPrice) || 95.00;
+
+    const basePrice = Number(currentCustomizingProduct.price || 0);
+    const unitPrice = basePrice + adicionaisTotal;
+    const totalPrice = unitPrice * customizerQuantity;
+
+    const cartItem = {
+        cartItemId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        id: currentCustomizingProduct.id,
+        name: currentCustomizingProduct.name,
+        category: currentCustomizingProduct.category || currentCustomizingProduct.categoryKey,
+        singlePrice: unitPrice,
+        basePrice: basePrice,
+        adicionais: selectedAdicionais,
+        quantity: customizerQuantity,
+        totalPrice: totalPrice,
+        notes: notes
+    };
+
+    cart.push(cartItem);
+    saveCartToStorage();
+    closeProductCustomizer();
+    updateCartUI();
+    toggleCart(true);
+    showToast(`${cartItem.quantity}x ${cartItem.name} adicionado ao pedido!`, 'success');
+
+    if (typeof TrackingService !== 'undefined') {
+        TrackingService.trackAddToCart(cartItem);
+    }
+}
+
+/* ==========================================================================
+   Cart Management
+   ========================================================================== */
+function saveCartToStorage() {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+}
+
+function loadCartFromStorage() {
+    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    if (stored) {
+        try {
+            cart = JSON.parse(stored);
+        } catch (e) {
+            cart = [];
         }
     } else {
-        currentPizza.selectedFlavors.forEach(flavorId => {
-            const flavorData = MENU_ITEMS.pizzas.find(p => p.id === flavorId);
-            if (flavorData && flavorData.prices) {
-                const price = parseFloat(flavorData.prices[sizeKey]) || 0;
-                if (price > maxFlavorPrice) {
-                    maxFlavorPrice = price;
-                }
-            }
-        });
+        cart = [];
     }
-    
-    // Se por algum motivo o preço não puder ser calculado individualmente, usa o fallback da matriz anterior
-    if (maxFlavorPrice === 0 && PIZZA_PRICES && PIZZA_PRICES[currentPizza.size]) {
-        const CATEGORY_VALUES = {
-            'tradicional': 1,
-            'especial': 2
-        };
-        let maxCategory = 'tradicional';
-        let maxVal = 0;
-        currentPizza.selectedFlavors.forEach(flavorId => {
-            const flavorData = MENU_ITEMS.pizzas.find(p => p.id === flavorId);
-            if (flavorData) {
-                const catType = flavorData.categoryType || 'tradicional';
-                const val = CATEGORY_VALUES[catType] || 1;
-                if (val > maxVal) {
-                    maxVal = val;
-                    maxCategory = catType;
-                }
-            }
-        });
-        maxFlavorPrice = PIZZA_PRICES[currentPizza.size][maxCategory] || 0;
-    }
-    
-    const borderRadio = document.querySelector('input[name="pizza-border"]:checked');
-    const borderPrice = borderRadio ? parseFloat(borderRadio.getAttribute('data-price')) : 0;
-    
-    currentPizza.border = borderRadio ? borderRadio.value : 'sem-borda';
-    
-    const singlePrice = maxFlavorPrice + borderPrice;
-    currentPizza.totalPrice = singlePrice * currentPizza.quantity;
-    
-    document.getElementById('btnAddToOrder').innerText = `Adicionar ao Pedido — R$ ${currentPizza.totalPrice.toFixed(2).replace('.', ',')}`;
-}
-
-function addPizzaToOrder() {
-    if (currentPizza.selectedFlavors.length === 0) return;
-    
-    const pizzaNotesEl = document.getElementById('pizzaNotes'); currentPizza.notes = pizzaNotesEl ? pizzaNotesEl.value.trim() : '';
-    
-    const cartItem = {
-        type: 'pizza',
-        size: currentPizza.size,
-        sizeName: TAMANHO_NOMES[currentPizza.size],
-        border: currentPizza.border,
-        borderName: BORDAS[currentPizza.border] ? (BORDAS[currentPizza.border].price === 0 ? BORDAS[currentPizza.border].name : `${BORDAS[currentPizza.border].name} (+ R$ ${BORDAS[currentPizza.border].price.toFixed(2).replace('.', ',')})`) : 'Sem Borda',
-        flavors: [...currentPizza.selectedFlavors],
-        flavorNames: currentPizza.selectedFlavors.map(fId => {
-            const pizzaObj = (MENU_ITEMS.pizzas || []).find(p => p.id === fId);
-            return pizzaObj ? pizzaObj.name : fId;
-        }),
-        notes: currentPizza.notes,
-        quantity: currentPizza.quantity,
-        singlePrice: currentPizza.totalPrice / currentPizza.quantity,
-        totalPrice: currentPizza.totalPrice
-    };
-    
-    cart = CartService.addToCart(cartItem);
-    updateCartUI();
-    closePizzaCustomizer();
-    toggleCart(true);
-    
-    const badge = document.getElementById('cartBadgeCount');
-    if (badge) {
-        badge.classList.remove('animate-bounce');
-        void badge.offsetWidth;
-        badge.classList.add('animate-bounce');
-    }
-}
-
-/* ==========================================================================
-   Add Simple Items (Drinks)
-   ========================================================================== */
-function addSimpleItemToCart(itemId, category) {
-    let list = [];
-    if (category === 'bebidas') {
-        list = MENU_ITEMS.bebidas || [];
-    } else if (category === 'lanches') {
-        list = MENU_ITEMS.lanches || [];
-    } else if (category === 'calzones') {
-        list = MENU_ITEMS.calzones || [];
-    }
-    const itemData = list.find(item => item.id === itemId);
-    
-    if (!itemData) return;
-    
-    const isPromoActive = CONFIG_SETTINGS && CONFIG_SETTINGS.promoActive && isItemPromoToday(itemData);
-    let priceVal = parseFloat(itemData.price) || 0;
-    
-    if (isPromoActive) {
-        priceVal = getPromoPriceForProduct({
-            ...itemData,
-            type: category === 'lanches' ? 'lanche' : (category === 'calzones' ? 'calzone' : 'bebida')
-        });
-    }
-    
-    const cartItem = {
-        type: 'simple',
-        id: itemId,
-        name: itemData.name,
-        category: category,
-        quantity: 1,
-        singlePrice: priceVal,
-        totalPrice: priceVal
-    };
-    
-    cart = CartService.addToCart(cartItem);
-    updateCartUI();
-    toggleCart(true);
-}
-
-/* ==========================================================================
-   Cart State Operations & Layout Rendering
-   ========================================================================== */
-function toggleCart(isOpen) {
-    const drawer = document.getElementById('cartDrawer');
-    const overlay = document.getElementById('cartOverlay');
-    
-    if (isOpen) {
-        drawer.classList.add('active');
-        overlay.classList.add('active');
-    } else {
-        drawer.classList.remove('active');
-        overlay.classList.remove('active');
-    }
-}
-
-function updateCartQty(index, delta) {
-    cart = CartService.updateCartQty(index, delta);
-    updateCartUI();
 }
 
 function updateCartUI() {
-    const emptyState = document.getElementById('cartEmptyState');
-    const contentDiv = document.getElementById('cartContent');
-    const itemsList = document.getElementById('cartItemsList');
-    
+    const countBadges = document.querySelectorAll('.cart-badge-count, #cartCountBadge');
     let totalItems = 0;
     let subtotal = 0;
-    
-    if (itemsList) itemsList.innerHTML = '';
-    
-    if (cart.length === 0) {
-        if (emptyState) emptyState.classList.remove('display-none');
-        if (contentDiv) contentDiv.classList.add('display-none');
-        const badgeCount = document.getElementById('cartBadgeCount');
-        if (badgeCount) {
-            badgeCount.innerText = '0';
-            badgeCount.style.display = 'none';
-        }
-        return;
-    }
-    
-    if (emptyState) emptyState.classList.add('display-none');
-    if (contentDiv) contentDiv.classList.remove('display-none');
-    
-    cart.forEach((item, index) => {
+
+    cart.forEach(item => {
         totalItems += item.quantity;
         subtotal += item.totalPrice;
-        
-        if (itemsList) {
-            const itemRow = document.createElement('div');
-            itemRow.className = 'cart-item';
-            
-            let detailsHTML = '';
-            let titleHTML = '';
-            
-            if (item.type === 'pizza') {
-                titleHTML = `Pizza ${item.sizeName}`;
-                detailsHTML = `
-                    <div class="cart-item-subtitle">
-                        <strong>Sabores:</strong> ${item.flavorNames.join(' / ')}<br>
-                        <strong>Borda:</strong> ${item.borderName}
-                    </div>
-                `;
-                if (item.notes) {
-                    detailsHTML += `<div class="cart-item-notes">Obs: ${item.notes}</div>`;
-                }
-            } else if (item.type === 'acai') {
-                titleHTML = `Açaí ${item.size}`;
-                let adds = [];
-                if (item.freeAdditions && item.freeAdditions.length > 0) {
-                    adds.push(`Grátis: ${item.freeAdditions.join(', ')}`);
-                }
-                if (item.paidAdditions && item.paidAdditions.length > 0) {
-                    adds.push(`Pagos: ${item.paidAdditions.map(a => a.name).join(', ')}`);
-                }
-                detailsHTML = `
-                    <div class="cart-item-subtitle">
-                        ${adds.length > 0 ? `<strong>Adicionais:</strong> ${adds.join('<br>')}` : 'Sem adicionais'}
-                    </div>
-                `;
-                if (item.notes) {
-                    detailsHTML += `<div class="cart-item-notes">Obs: ${item.notes}</div>`;
-                }
-            } else {
-                titleHTML = item.name;
+    });
+
+    countBadges.forEach(b => {
+        b.innerText = totalItems;
+        if (totalItems > 0) b.classList.remove('display-none');
+    });
+
+    const emptyState = document.getElementById('cartEmptyState');
+    const content = document.getElementById('cartContent');
+    const itemsList = document.getElementById('cartItemsList');
+
+    if (cart.length === 0) {
+        if (emptyState) emptyState.style.display = 'flex';
+        if (content) content.style.display = 'none';
+        return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+    if (content) content.style.display = 'flex';
+
+    if (itemsList) {
+        itemsList.innerHTML = '';
+
+        cart.forEach(item => {
+            const itemElem = document.createElement('div');
+            itemElem.className = 'cart-item-row';
+
+            let flavorsHTML = '';
+            if (item.pizza && Array.isArray(item.pizza.flavors) && item.pizza.flavors.length > 0) {
+                const fLabels = item.pizza.flavors.map(f => (f.fraction && f.fraction !== '1/1' && f.fraction !== '1') ? `${f.fraction} ${f.name}` : f.name);
+                flavorsHTML = `<div class="cart-item-flavors" style="font-size: 11px; color: var(--text-color, #444); margin-top: 2px;">Sabores: ${fLabels.join(' + ')}</div>`;
+            } else if (Array.isArray(item.flavorNames) && item.flavorNames.length > 1) {
+                flavorsHTML = `<div class="cart-item-flavors" style="font-size: 11px; color: var(--text-color, #444); margin-top: 2px;">Sabores: ${item.flavorNames.join(' + ')}</div>`;
             }
-            
-            itemRow.innerHTML = `
-                <div class="cart-item-details">
-                    <h4 class="cart-item-title">${titleHTML}</h4>
-                    ${detailsHTML}
-                    <div class="cart-item-action">
-                        <span class="cart-item-price">R$ ${item.totalPrice.toFixed(2).replace('.', ',')}</span>
-                        <div class="item-qty-adjuster">
-                            <button onclick="updateCartQty(${index}, -1)"><span class="material-symbols-rounded">remove</span></button>
-                            <span>${item.quantity}</span>
-                            <button onclick="updateCartQty(${index}, 1)"><span class="material-symbols-rounded">add</span></button>
-                        </div>
+
+            let borderHTML = '';
+            const crustObj = (item.pizza && item.pizza.crust) || item.border;
+            if (crustObj && crustObj.name) {
+                const crustPrice = Number(crustObj.price || 0);
+                borderHTML = `<div class="cart-item-border" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Preferência: ${crustObj.name}${crustPrice > 0 ? ' (+R$ ' + crustPrice.toFixed(2).replace('.', ',') + ')' : ' (Incluso)'}</div>`;
+            }
+
+            let adicionaisHTML = '';
+            if (item.adicionais && item.adicionais.length > 0) {
+                adicionaisHTML = `<div class="cart-item-adicionais" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">+ ${item.adicionais.map(a => a.name).join(', ')}</div>`;
+            }
+
+            let notesHTML = (item.comment || item.notes) ? `<div class="cart-item-notes" style="font-size: 11px; color: #f5a623; margin-top: 2px;">Obs: "${item.comment || item.notes}"</div>` : '';
+            let unitPriceHTML = item.quantity > 1 ? `<span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">(R$ ${item.singlePrice.toFixed(2).replace('.', ',')} un.)</span>` : '';
+
+            itemElem.innerHTML = `
+                <div class="cart-item-info">
+                    <h4 class="cart-item-title">${item.name}</h4>
+                    ${flavorsHTML}
+                    ${borderHTML}
+                    ${adicionaisHTML}
+                    ${notesHTML}
+                    <span class="cart-item-price">R$ ${item.totalPrice.toFixed(2).replace('.', ',')}${unitPriceHTML}</span>
+                </div>
+                <div class="cart-item-actions">
+                    <div class="qty-stepper">
+                        <button type="button" onclick="updateCartItemQty('${item.cartItemId}', -1)">
+                            <span class="material-symbols-rounded">remove</span>
+                        </button>
+                        <span>${item.quantity}</span>
+                        <button type="button" onclick="updateCartItemQty('${item.cartItemId}', 1)">
+                            <span class="material-symbols-rounded">add</span>
+                        </button>
                     </div>
                 </div>
             `;
-            
-            itemsList.appendChild(itemRow);
-        }
-    });
-    
-    // Values Summary
-    let deliveryFee = 0;
-    if (checkoutType === 'delivery') {
-        const bairroSelect = document.getElementById('addressBairro');
-        const selectedBairro = bairroSelect ? bairroSelect.value : '';
-        deliveryFee = selectedBairro ? getDeliveryFeeForBairro(selectedBairro) : 10.00;
-    }
-    const finalTotal = subtotal + deliveryFee;
-    
-    const subtotalEl = document.getElementById('cartSubtotal');
-    if (subtotalEl) subtotalEl.innerText = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
-    
-    const deliveryFeeEl = document.getElementById('cartDeliveryFee');
-    if (deliveryFeeEl) deliveryFeeEl.innerText = deliveryFee === 0 ? 'Grátis' : `R$ ${deliveryFee.toFixed(2).replace('.', ',')}`;
-    
-    const totalEl = document.getElementById('cartTotal');
-    if (totalEl) totalEl.innerText = `R$ ${finalTotal.toFixed(2).replace('.', ',')}`;
-    
-    const badgeCount = document.getElementById('cartBadgeCount');
-    if (badgeCount) {
-        badgeCount.innerText = totalItems;
-        badgeCount.style.display = totalItems > 0 ? 'flex' : 'none';
-    }
-    
-    // Desabilitar botão de checkout se a pizzaria estiver fechada
-    const checkoutBtn = document.querySelector('.checkout-btn');
-    if (checkoutBtn) {
-        if (!isShopOpen) {
-            checkoutBtn.disabled = true;
-            checkoutBtn.style.opacity = '0.5';
-            checkoutBtn.style.cursor = 'not-allowed';
-            checkoutBtn.style.pointerEvents = 'none';
-            const spanText = checkoutBtn.querySelector('span');
-            if (spanText) spanText.innerText = 'Pizzaria Fechada';
-        } else {
-            checkoutBtn.disabled = false;
-            checkoutBtn.style.opacity = '';
-            checkoutBtn.style.cursor = '';
-            checkoutBtn.style.pointerEvents = '';
-            const spanText = checkoutBtn.querySelector('span');
-            if (spanText) spanText.innerText = 'Finalizar Pedido';
-        }
-    }
-}
 
-function saveCartToLocalStorage() {
-    CartService.setCart(cart);
-}
+            itemsList.appendChild(itemElem);
+        });
+    }
 
-function loadCartFromLocalStorage() {
-    cart = CartService.loadCartFromLocalStorage();
+    const subtotalElem = document.getElementById('cartSubtotal');
+    const deliveryElem = document.getElementById('cartDeliveryFee');
+    const totalElem = document.getElementById('cartTotal');
+
+    let deliveryFee = getCalculatedDeliveryFee();
+    let total = subtotal + deliveryFee;
+
+    if (subtotalElem) subtotalElem.innerText = `R$ ${subtotal.toFixed(2)}`;
+    if (deliveryElem) deliveryElem.innerText = deliveryFee === 0 ? 'GrÃ¡tis' : `R$ ${deliveryFee.toFixed(2)}`;
+    if (totalElem) totalElem.innerText = `R$ ${total.toFixed(2)}`;
+}
+function updateCartItemQty(cartItemId, delta) {
+    const index = cart.findIndex(i => i.cartItemId === cartItemId);
+    if (index === -1) return;
+
+    cart[index].quantity += delta;
+    if (cart[index].quantity <= 0) {
+        cart.splice(index, 1);
+    } else {
+        cart[index].totalPrice = cart[index].singlePrice * cart[index].quantity;
+    }
+
+    saveCartToStorage();
     updateCartUI();
 }
 
-/* ==========================================================================
-   Checkout Modal Handlers
-   ========================================================================== */
-function openCheckoutModal() {
-    if (!isShopOpen) {
-        alert("A Pizzaria Drill está fechada para pedidos no momento. Agradecemos a compreensão!");
-        return;
+function toggleCart(open) {
+    const drawer = document.getElementById('cartDrawer');
+    const overlay = document.getElementById('cartOverlay');
+    if (open) {
+        if (drawer) drawer.classList.add('active');
+        if (overlay) overlay.classList.add('active');
+    } else {
+        if (drawer) drawer.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
     }
-    toggleCart(false); // Close cart sidebar
-    const modal = document.getElementById('checkoutModal');
-    
-    let subtotal = CartService.calculateSubtotal();
-    let fee = 0;
-    if (checkoutType === 'delivery') {
-        const bairroSelect = document.getElementById('addressBairro');
-        const selectedBairro = bairroSelect ? bairroSelect.value : '';
-        fee = selectedBairro ? getDeliveryFeeForBairro(selectedBairro) : DELIVERY_FEE;
-    }
-    
-    // Handle Cash 5% discount
-    const payMethodRadio = document.querySelector('input[name="payment-method"]:checked'); const isCash = payMethodRadio ? payMethodRadio.value === 'cash' : false;
-    let total = subtotal + fee;
-    if (isCash) {
-        total = (subtotal * 0.95) + fee;
-    }
-    
-    const checkoutTotalValueEl = document.getElementById('checkoutTotalValue'); if (checkoutTotalValueEl) checkoutTotalValueEl.innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
-    
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
 }
 
-// Subcategory Switcher inside Customizer (visual sub-tabs)
-function renderPizzasFlavorsGrid(subcategory) {
-    // In this premium site, we render all categories stacked, so sub-tab filters can scroll to the subcategory
-    const container = document.getElementById('customizerFlavorsList');
-    if (!container) return;
-    
-    // Encontrar todos os títulos de categorias e rolar para eles ou ocultar
-    const headers = container.querySelectorAll('.customizer-flavor-category-title');
-    const blocks = [];
-    let currentBlock = null;
-    
-    container.childNodes.forEach(node => {
-        if (node.className === 'customizer-flavor-category-title') {
-            currentBlock = { header: node, items: [] };
-            blocks.push(currentBlock);
-        } else if (currentBlock) {
-            currentBlock.items.push(node);
-        }
-    });
-    
-    blocks.forEach(block => {
-        const text = block.header.innerText.toLowerCase();
-        let show = false;
-        
-        if (subcategory === 'salgadas' && text.includes('salgadas')) {
-            show = true;
-        } else if (subcategory === 'doces' && text.includes('doces')) {
-            show = true;
-        }
-        
-        block.header.style.display = show ? 'block' : 'none';
-        block.items.forEach(item => item.style.display = show ? 'flex' : 'none');
-    });
+function getCalculatedDeliveryFee() {
+    if (checkoutType === 'pickup') return 0;
+    const select = document.getElementById('addressBairro');
+    if (!select || !select.selectedOptions || select.selectedOptions.length === 0) return 0;
+    const opt = select.selectedOptions[0];
+    return opt && opt.dataset.fee ? parseFloat(opt.dataset.fee) : 0;
+}
+
+function onNeighborhoodChange() {
+    updateCartUI();
+    const checkoutTotal = document.getElementById('checkoutTotalValue');
+    if (checkoutTotal) {
+        let subtotal = 0;
+        cart.forEach(i => subtotal += i.totalPrice);
+        let total = subtotal + getCalculatedDeliveryFee();
+        checkoutTotal.innerText = `R$ ${total.toFixed(2)}`;
+    }
+}
+
+/* ==========================================================================
+   Checkout Logic
+   ========================================================================== */
+function openCheckoutModal() {
+    if (cart.length === 0) {
+        showToast('Seu carrinho estÃ¡ vazio!', 'warning');
+        return;
+    }
+    toggleCart(false);
+    const modal = document.getElementById('checkoutModal');
+    if (modal) modal.classList.add('active');
+    onNeighborhoodChange();
+    togglePaymentFields();
+
+    if (typeof TrackingService !== 'undefined') {
+        TrackingService.trackInitiateCheckout(cart);
+    }
 }
 
 function closeCheckoutModal() {
     const modal = document.getElementById('checkoutModal');
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
+    if (modal) modal.classList.remove('active');
 }
 
 function setCheckoutType(type) {
     checkoutType = type;
-    const deliveryTab = document.getElementById('deliveryTab');
-    const pickupTab = document.getElementById('pickupTab');
-    const addressSection = document.getElementById('addressSection');
-    
-    const street = document.getElementById('addressStreet');
-    const number = document.getElementById('addressNumber');
-    const neighborhood = document.getElementById('addressBairro');
-    
+    const delTab = document.getElementById('deliveryTab');
+    const pickTab = document.getElementById('pickupTab');
+    const addrSec = document.getElementById('addressSection');
+    const nameLabel = document.querySelector('label[for="clientName"]');
+    const phoneLabel = document.querySelector('label[for="clientPhone"]');
+
     if (type === 'delivery') {
-        deliveryTab.classList.add('active');
-        pickupTab.classList.remove('active');
-        addressSection.classList.remove('display-none');
-        
-        street.required = true;
-        number.required = true;
-        neighborhood.required = true;
+        if (delTab) delTab.classList.add('active');
+        if (pickTab) pickTab.classList.remove('active');
+        if (addrSec) addrSec.style.display = 'block';
+        if (nameLabel) nameLabel.innerHTML = 'Seu Nome *';
+        if (phoneLabel) phoneLabel.innerHTML = 'WhatsApp com DDD *';
     } else {
-        deliveryTab.classList.remove('active');
-        pickupTab.classList.add('active');
-        addressSection.classList.add('display-none');
-        
-        street.required = false;
-        number.required = false;
-        neighborhood.required = false;
+        if (pickTab) pickTab.classList.add('active');
+        if (delTab) delTab.classList.remove('active');
+        if (addrSec) addrSec.style.display = 'none';
+        if (nameLabel) nameLabel.innerHTML = 'Seu Nome <span style="font-weight: normal; color: var(--text-muted); font-size: 12px;">(Opcional)</span>';
+        if (phoneLabel) phoneLabel.innerHTML = 'WhatsApp <span style="font-weight: normal; color: var(--text-muted); font-size: 12px;">(Opcional)</span>';
     }
-    
-    // Update summary price
-    updateCheckoutPrice();
+
+    onNeighborhoodChange();
 }
 
 function togglePaymentFields() {
-    const payMethodRadio = document.querySelector('input[name="payment-method"]:checked'); const selectedMethod = payMethodRadio ? payMethodRadio.value : 'pix';
-    const cashChangeGroup = document.getElementById('cashChangeGroup');
-    const pixInstructions = document.getElementById('pixInstructions');
-    
-    if (selectedMethod === 'cash') {
-        cashChangeGroup.classList.remove('display-none');
-        pixInstructions.classList.add('display-none');
-    } else if (selectedMethod === 'pix') {
-        cashChangeGroup.classList.add('display-none');
-        pixInstructions.classList.remove('display-none');
-    } else {
-        cashChangeGroup.classList.add('display-none');
-        pixInstructions.classList.add('display-none');
-    }
-    
-    updateCheckoutPrice();
+    const selected = document.querySelector('input[name="payment-method"]:checked')?.value;
+    const changeGroup = document.getElementById('cashChangeGroup');
+    const pixInst = document.getElementById('pixInstructions');
+
+    if (changeGroup) changeGroup.classList.toggle('display-none', selected !== 'cash');
+    if (pixInst) pixInst.classList.toggle('display-none', selected !== 'pix');
 }
 
-function updateCheckoutPrice() {
-    let subtotal = CartService.calculateSubtotal();
-    let fee = 0;
-    if (checkoutType === 'delivery') {
-        const bairroSelect = document.getElementById('addressBairro');
-        const selectedBairro = bairroSelect ? bairroSelect.value : '';
-        fee = selectedBairro ? getDeliveryFeeForBairro(selectedBairro) : DELIVERY_FEE;
+function captureCustomerLocation() {
+    const statusDiv = document.getElementById('locationStatus');
+    const btn = document.getElementById('btnGetLocation');
+
+    if (!navigator.geolocation) {
+        alert("GeolocalizaÃ§Ã£o nÃ£o suportada no seu navegador.");
+        return;
     }
-    
-    // 5% discount on subtotal if payment is Cash
-    const payMethodRadio = document.querySelector('input[name="payment-method"]:checked'); const selectedMethod = payMethodRadio ? payMethodRadio.value : 'pix';
-    let total = subtotal + fee;
-    if (selectedMethod === 'cash') {
-        total = (subtotal * 0.95) + fee;
+
+    if (statusDiv) {
+        statusDiv.style.display = 'block';
+        statusDiv.innerText = 'Obtendo localizaÃ§Ã£o GPS...';
     }
-    
-    const checkoutTotalValueEl = document.getElementById('checkoutTotalValue'); if (checkoutTotalValueEl) checkoutTotalValueEl.innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+
+    navigator.geolocation.getCurrentPosition((pos) => {
+        customerLocation = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+        };
+        if (statusDiv) {
+            statusDiv.style.color = '#25d366';
+            statusDiv.innerText = 'âœ“ LocalizaÃ§Ã£o GPS capturada com sucesso!';
+        }
+        if (btn) btn.classList.add('location-success');
+    }, (err) => {
+        if (statusDiv) {
+            statusDiv.style.color = '#ef5350';
+            statusDiv.innerText = 'NÃ£o foi possÃ­vel obter a localizaÃ§Ã£o. Preencha seu endereÃ§o normalmente.';
+        }
+    }, { enableHighAccuracy: true, timeout: 10000 });
 }
 
 function submitOrder() {
-    const form = document.getElementById('checkoutForm');
-    
-    // Check validation manually to avoid full page reload
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-    
-    const clientNameEl = document.getElementById('clientName'); const clientName = clientNameEl ? clientNameEl.value.trim() : '';
-    const clientPhoneEl = document.getElementById('clientPhone'); const clientPhone = clientPhoneEl ? clientPhoneEl.value.trim() : '';
-    const payMethodRadio = document.querySelector('input[name="payment-method"]:checked'); const paymentMethod = payMethodRadio ? payMethodRadio.value : 'pix';
-    
-    let subtotal = CartService.calculateSubtotal();
-    let fee = 0;
+    const nameInput = document.getElementById('clientName');
+    const phoneInput = document.getElementById('clientPhone');
+
+    let clientName = nameInput ? nameInput.value.trim() : '';
+    let clientPhone = phoneInput ? phoneInput.value.trim() : '';
+
     if (checkoutType === 'delivery') {
-        const bairroSelect = document.getElementById('addressBairro');
-        const selectedBairro = bairroSelect ? bairroSelect.value : '';
-        fee = selectedBairro ? getDeliveryFeeForBairro(selectedBairro) : DELIVERY_FEE;
-    }
-    
-    let total = subtotal + fee;
-    let discountMsg = '';
-    
-    if (paymentMethod === 'cash') {
-        total = (subtotal * 0.95) + fee;
-        discountMsg = `\n*(Desconto Dinheiro de 5% aplicado no subtotal!)*`;
-    }
-    
-    // Building WhatsApp Message
-    let msg = `🍕 *NOVO PEDIDO - PIZZARIA DRILL* 🍕\n`;
-    msg += `----------------------------------------\n\n`;
-    msg += `👤 *Cliente:* ${clientName}\n`;
-    msg += `📞 *WhatsApp:* ${clientPhone}\n`;
-    msg += `📦 *Tipo:* ${checkoutType === 'delivery' ? '🚗 Entrega (Delivery)' : '🏪 Retirada no Balcão'}\n\n`;
-    
-    if (checkoutType === 'delivery') {
-        const streetEl = document.getElementById('addressStreet'); const street = streetEl ? streetEl.value.trim() : '';
-        const numberEl = document.getElementById('addressNumber'); const number = numberEl ? numberEl.value.trim() : '';
-        const neighborhoodEl = document.getElementById('addressBairro'); const neighborhood = neighborhoodEl ? neighborhoodEl.value.trim() : '';
-        const refEl = document.getElementById('addressRef'); const ref = refEl ? refEl.value.trim() : '';
-        
-        msg += `📍 *Endereço de Entrega:*\n`;
-        msg += `${street}, nº ${number}\n`;
-        msg += `Bairro: ${neighborhood}\n`;
-        if (ref) msg += `Ref/Complemento: ${ref}\n`;
-        msg += `\n`;
-    } else {
-        msg += `📍 *Retirada em:* Rua das Quaresmeiras, Nº 30 - Vale Verde, Nova Petrópolis\n\n`;
-    }
-    
-    msg += `🛒 *Itens do Pedido:*\n`;
-    msg += `----------------------------------------\n`;
-    
-    cart.forEach(item => {
-        if (item.type === 'pizza') {
-            msg += `• *1x Pizza ${item.sizeName}*\n`;
-            msg += `  Sabores: ${item.flavorNames.join(' e ')}\n`;
-            msg += `  Borda: ${item.borderName}\n`;
-            if (item.notes) msg += `  Observação: _"${item.notes}"_\n`;
-            msg += `  *Subtotal:* R$ ${item.totalPrice.toFixed(2)}\n\n`;
-        } else if (item.type === 'acai') {
-            msg += `• *${item.quantity}x Açaí ${item.size}*\n`;
-            if (item.freeAdditions && item.freeAdditions.length > 0) {
-                msg += `  Adicionais Grátis: ${item.freeAdditions.join(', ')}\n`;
-            }
-            if (item.paidAdditions && item.paidAdditions.length > 0) {
-                msg += `  Adicionais Pagos: ${item.paidAdditions.map(a => `${a.name} (+R$ ${a.price.toFixed(2)})`).join(', ')}\n`;
-            }
-            if (item.notes) msg += `  Observação: _"${item.notes}"_\n`;
-            msg += `  *Subtotal:* R$ ${item.totalPrice.toFixed(2)}\n\n`;
-        } else {
-            msg += `• *${item.quantity}x ${item.name}*\n`;
-            msg += `  *Subtotal:* R$ ${item.totalPrice.toFixed(2)}\n\n`;
+        if (!clientName || !clientPhone) {
+            showToast('Preencha seu nome e WhatsApp para a entrega!', 'warning');
+            if (!clientName && nameInput) nameInput.focus();
+            else if (!clientPhone && phoneInput) phoneInput.focus();
+            return;
         }
-    });
-    
-    msg += `----------------------------------------\n`;
-    msg += `💵 *Subtotal:* R$ ${subtotal.toFixed(2)}\n`;
-    msg += `🚗 *Taxa de Entrega:* ${fee === 0 ? 'Grátis' : `R$ ${fee.toFixed(2)}`}\n`;
-    msg += `💰 *Total a pagar:* R$ ${total.toFixed(2)}${discountMsg}\n\n`;
-    
-    msg += `💳 *Forma de Pagamento:* `;
-    if (paymentMethod === 'pix') {
-        msg += `Pix\n*(Chave Pix: 658101070000140)*`;
-    } else if (paymentMethod === 'card') {
-        msg += `Cartão (Levar Maquininha)`;
     } else {
-        const changeEl = document.getElementById('cashChange'); const change = changeEl ? changeEl.value.trim() : '';
-        msg += `Dinheiro`;
-        if (change) msg += ` (Troco para R$ ${change})`;
+        // Retirada no balcÃ£o sem necessidade de cadastro obrigatÃ³rio
+        if (!clientName) clientName = 'Cliente Retirada';
+        if (!clientPhone) clientPhone = 'BalcÃ£o';
     }
-    
-    // Format URL
-    const whatsappNumber = CONFIG_SETTINGS.whatsapp;
-    const encodedMsg = encodeURIComponent(msg);
-    const whatsappLink = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encodedMsg}`;
-    
-    // Envia o pedido para o painel da revenda (Firebase ou Servidor Local)
+
+    let addressData = null;
+    if (checkoutType === 'delivery') {
+        const street = document.getElementById('addressStreet')?.value.trim();
+        const number = document.getElementById('addressNumber')?.value.trim();
+        const selectBairro = document.getElementById('addressBairro');
+        const neighborhood = selectBairro?.value || 'Centro';
+        const reference = document.getElementById('addressRef')?.value.trim() || '';
+
+        if (!street || !number) {
+            showToast('Preencha a rua e o nÃºmero da sua entrega!', 'warning');
+            return;
+        }
+
+        addressData = { street, number, neighborhood, reference };
+    }
+
+    const paymentMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'pix';
+    const cashChange = document.getElementById('cashChange')?.value.trim() || '';
+
+    let subtotal = 0;
+    cart.forEach(i => subtotal += i.totalPrice);
+    const deliveryFee = getCalculatedDeliveryFee();
+    const total = subtotal + deliveryFee;
+
+    const orderId = Date.now();
+    const now = new Date();
+    const timeFormatted = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const dateFormatted = now.toLocaleDateString('pt-BR');
+
     const orderData = {
+        id: orderId,
         clientName: clientName,
         clientPhone: clientPhone,
         checkoutType: checkoutType,
-        address: checkoutType === 'delivery' ? {
-            street: (document.getElementById('addressStreet') ? document.getElementById('addressStreet').value.trim() : ''),
-            number: (document.getElementById('addressNumber') ? document.getElementById('addressNumber').value.trim() : ''),
-            neighborhood: (document.getElementById('addressBairro') ? document.getElementById('addressBairro').value.trim() : ''),
-            reference: (document.getElementById('addressRef') ? document.getElementById('addressRef').value.trim() : '')
-        } : null,
-        paymentMethod: paymentMethod,
-        cashChange: paymentMethod === 'cash' ? (document.getElementById('cashChange') ? document.getElementById('cashChange').value.trim() : '') : null,
+        address: addressData,
+        location: customerLocation,
         cart: cart,
         subtotal: subtotal,
-        deliveryFee: fee,
-        total: total
+        deliveryFee: deliveryFee,
+        total: total,
+        paymentMethod: paymentMethod,
+        cashChange: cashChange,
+        status: 'Pendente',
+        timestamp: orderId,
+        time: timeFormatted,
+        date: dateFormatted
     };
 
-    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-        const orderId = Date.now();
-        const timeFormatted = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        const dateFormatted = new Date().toLocaleDateString('pt-BR');
-        
-        const firebaseOrder = {
-            ...orderData,
-            id: orderId,
-            status: 'Pendente',
-            timestamp: orderId,
-            time: timeFormatted,
-            date: dateFormatted
-        };
+    showGlobalLoading('Gravando seu pedido...');
 
-        ConfigService.saveOrder(orderId, firebaseOrder)
-        .catch(err => {
-            console.error("Erro ao enviar para o Firebase, enviando para o servidor local:", err);
-            fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData)
-            })
-            .catch(localErr => console.error("Erro ao enviar pedido para o painel local:", localErr));
-        });
-    } else {
-        fetch('/api/orders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderData)
-        })
-        .catch(err => console.error("Erro ao enviar pedido para o painel local:", err));
-    }
-
-    // Clear cart and close modals
-    cart = [];
-    saveCartToLocalStorage();
-    updateCartUI();
-    closeCheckoutModal();
-    
-    // Open WhatsApp link in new tab
-    window.open(whatsappLink, '_blank');
-    
-    // Show success dialog
-    alert('Pedido enviado com sucesso! Você será redirecionado para o WhatsApp para confirmar.');
-}
-
-function initMenuData() {
-    // 1. Listen to config/settings
-    ConfigService.subscribeSettings((data) => {
-        if (data) {
-            CONFIG_SETTINGS = { ...CONFIG_SETTINGS, ...data };
-            updateContactInfoUI();
-        }
-    });
-    
-    // 2. Listen to config/delivery_fees
-    ConfigService.subscribeDeliveryFees((data) => {
-        if (data) {
-            TAXAS_ENTREGA = data;
-            populateNeighborhoodDropdown();
-            updateCartUI();
-        }
-    });
-    
-    // 3. Listen to categorias
-    ProductsService.subscribeCategories((categoriesList) => {
-        if (categoriesList && categoriesList.length > 0) {
-            renderCategoriesUI(categoriesList);
-        }
-    });
-    
-    // 4. Listen to banners
-    ProductsService.subscribeBanners((bannersList) => {
-        if (bannersList && bannersList.length > 0) {
-            renderBannersUI(bannersList);
-        }
-    });
-    
-    // 5. Listen to produtos (all items)
-    ProductsService.subscribeProducts((productsList) => {
-        MENU_ITEMS = { pizzas: [], lanches: [], calzones: [], bebidas: [], acais: [] };
-        BORDAS = {};
-        const freeAdds = [];
-        const paid5 = [];
-        const paid25 = [];
-        
-        productsList.forEach((item) => {
-            if (item.category === 'pizzas') {
-                if (item.subcategory) {
-                    item.category = item.subcategory;
-                }
-                MENU_ITEMS.pizzas.push(item);
-            } else if (item.category === 'bordas') {
-                const key = item.id.replace('borda_', '');
-                BORDAS[key] = { name: item.name, price: item.price, category: item.subcategory || 'ambas' };
-            } else if (item.category === 'acai_adicionais') {
-                if (item.type === 'free') {
-                    freeAdds.push(item.name);
-                } else if (item.type === 'paid_5') {
-                    paid5.push(item.name);
-                } else if (item.type === 'paid_2.5') {
-                    paid25.push(item.name);
-                }
-            } else if (item.category) {
-                if (!MENU_ITEMS[item.category]) {
-                    MENU_ITEMS[item.category] = [];
-                }
-                MENU_ITEMS[item.category].push(item);
-            }
-        });
-        
-        ACAI_FREE_ADDITIONS = freeAdds;
-        ACAI_PAID_5 = paid5;
-        ACAI_PAID_2_5 = paid25;
-        
-        PIZZA_TYPES = getPizzaTypesDynamic();
-        renderMenu();
-        
-        const customizerModal = document.getElementById('customizerModal');
-        if (customizerModal && customizerModal.classList.contains('active')) {
-            renderCustomizerFlavors();
-            renderCustomizerBorders();
-            calculateCustomizerPrice();
-        }
-        
-        const acaiCustomizerModal = document.getElementById('acaiCustomizerModal');
-        if (acaiCustomizerModal && acaiCustomizerModal.classList.contains('active')) {
-            renderAcaiAdditionsLists();
-            calculateAcaiPrice();
-        }
-        
+    function proceedToWhatsApp() {
+        hideGlobalLoading();
+        closeCheckoutModal();
+        cart = [];
+        saveCartToStorage();
         updateCartUI();
-    });
+
+        if (typeof TrackingService !== 'undefined') {
+            TrackingService.trackPurchase(orderData);
+        }
+
+        // WhatsApp do restaurante ou fallback
+        let targetPhone = (menuData?.settings?.whatsapp || '').replace(/\D/g, '');
+        if (!targetPhone) targetPhone = '5554999999999';
+        if (targetPhone.length === 10 || targetPhone.length === 11) targetPhone = '55' + targetPhone;
+
+        const message = buildOrderWhatsAppMessage(orderData);
+        const url = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(message)}`;
+        try {
+            const win = window.open(url, '_blank');
+            if (!win || win.closed || typeof win.closed === 'undefined') {
+                window.location.href = url;
+            }
+        } catch (e) {
+            window.location.href = url;
+        }
+    }
+
+    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+        firebase.database().ref('orders/' + orderId).set(orderData)
+            .then(() => proceedToWhatsApp())
+            .catch(() => proceedToWhatsApp());
+    } else {
+        proceedToWhatsApp();
+    }
 }
 
-function renderCategoriesUI(categories) {
-    const scrollContainer = document.getElementById('categoriesScroll');
-    if (!scrollContainer) return;
-    
-    const activeCat = typeof currentCategory !== 'undefined' ? currentCategory : 'todos';
-    scrollContainer.innerHTML = '';
-    
-    categories.forEach(cat => {
-        const btn = document.createElement('button');
-        const isActive = cat.id === activeCat;
-        btn.className = `category-chip${isActive ? ' active' : ''}`;
-        btn.onclick = () => filterCategory(cat.id, btn);
-        
-        btn.innerHTML = `
-            <div class="category-icon-circle">${cat.icon || '🍽️'}</div>
-            <span class="category-name">${cat.name}</span>
-        `;
-        scrollContainer.appendChild(btn);
+function buildOrderWhatsAppMessage(order) {
+    let text = `ðŸ• *NOVO PEDIDO - FINA MASSA PIZZARIA* ðŸ•\n`;
+    text += `*Pedido:* #${order.id}\n`;
+    text += `*Data:* ${order.date} Ã s ${order.time}\n\n`;
+    text += `ðŸ‘¤ *Cliente:* ${order.clientName}\n`;
+    text += `ðŸ“± *Telefone:* ${order.clientPhone}\n`;
+    text += `ðŸ“  *Tipo:* ${order.checkoutType === 'delivery' ? 'Entrega (Delivery)' : 'Retirada no BalcÃ£o'}\n`;
+
+    if (order.checkoutType === 'delivery' && order.address) {
+        text += `📍 *EndereÃ§o:* ${order.address.street}, NÂº ${order.address.number} - Bairro ${order.address.neighborhood}\n`;
+        if (order.address.reference) text += `📌 *Ref:* ${order.address.reference}\n`;
+    }
+
+    text += `\n📋 *ITENS DO PEDIDO:*\n`;
+    order.cart.forEach(item => {
+        const itemTotalStr = (Number(item.totalPrice) || 0).toFixed(2).replace('.', ',');
+        text += `• *${item.quantity}x ${item.name}* - R$ ${itemTotalStr}\n`;
+
+        // Sabores / Frações da Pizza
+        if (item.pizza && Array.isArray(item.pizza.flavors) && item.pizza.flavors.length > 0) {
+            const fLabels = item.pizza.flavors.map(f => (f.fraction && f.fraction !== '1/1' && f.fraction !== '1') ? `${f.fraction} ${f.name}` : f.name);
+            text += `   🍕 Sabores: ${fLabels.join(' + ')}\n`;
+        } else if (Array.isArray(item.flavorNames) && item.flavorNames.length > 1) {
+            text += `   🍕 Sabores: ${item.flavorNames.join(' + ')}\n`;
+        }
+
+        // Borda / Preferência
+        const crustObj = (item.pizza && item.pizza.crust) || item.border;
+        if (crustObj && crustObj.name) {
+            const crustPrice = Number(crustObj.price || 0);
+            const crustPriceStr = crustPrice > 0 ? ` (+R$ ${crustPrice.toFixed(2).replace('.', ',')})` : ' (Incluso)';
+            text += `   🥖 Preferência: ${crustObj.name}${crustPriceStr}\n`;
+        }
+
+        // Adicionais
+        if (item.adicionais && item.adicionais.length > 0) {
+            text += `   + Adicionais: ${item.adicionais.map(a => a.name).join(', ')}\n`;
+        }
+
+        // Observação / Comentário
+        const comment = item.comment || item.notes;
+        if (comment) {
+            text += `   📝 Obs: "${comment}"\n`;
+        }
     });
+
+    text += `\n💰 *VALORES:*\n`;
+    text += `Subtotal: R$ ${(Number(order.subtotal) || 0).toFixed(2).replace('.', ',')}\n`;
+    text += `Taxa de Entrega: ${order.deliveryFee === 0 ? 'Grátis' : `R$ ${(Number(order.deliveryFee) || 0).toFixed(2).replace('.', ',')}`}\n`;
+    text += `*TOTAL: R$ ${(Number(order.total) || 0).toFixed(2).replace('.', ',')}*\n\n`;
+
+    const payMap = { pix: 'Pix', card: 'CartÃ£o na Entrega', cash: 'Dinheiro' };
+    text += `💳 *Forma de Pagamento:* ${payMap[order.paymentMethod] || order.paymentMethod}\n`;
+    if (order.paymentMethod === 'pix') {
+        const pixKey = menuData?.settings?.pixKey || '';
+        if (pixKey) {
+            text += `ðŸ”‘ *Chave Pix:* ${pixKey}\n`;
+        }
+    }
+    if (order.paymentMethod === 'cash' && order.cashChange) {
+        text += `ðŸ’µ *Troco para:* ${order.cashChange}\n`;
+    }
+
+    return text;
 }
 
-function renderBannersUI(banners) {
-    const bannerTrack = document.getElementById('bannerTrack');
-    if (!bannerTrack) return;
-    
-    bannerTrack.innerHTML = '';
-    
-    banners.forEach(banner => {
-        const slide = document.createElement('div');
-        slide.className = 'promo-banner';
-        slide.style.background = banner.gradient || 'linear-gradient(135deg, #b71c1c 0%, #1a0a0a 100%)';
-        
-        slide.innerHTML = `
-            <div class="banner-overlay"></div>
-            <div class="banner-content">
-                <span class="banner-tag" ${banner.tagBg ? `style="background-color: ${banner.tagBg}; color: #fff;"` : ''}>${banner.tag}</span>
-                <h2 class="banner-title">${banner.title}</h2>
-                <p class="banner-subtitle">${banner.subtitle}</p>
-            </div>
-            ${banner.image ? `<img src="${banner.image}" alt="${banner.title}" class="banner-image">` : ''}
-        `;
-        bannerTrack.appendChild(slide);
-    });
+/* ==========================================================================
+   Helpers
+   ========================================================================= */
+function setActiveCategoryTab(event, sectionId) {
+    if (event) event.preventDefault();
+    const links = document.querySelectorAll('.categories-nav .nav-link');
+    links.forEach(l => l.classList.remove('active'));
+    if (event && event.currentTarget) event.currentTarget.classList.add('active');
+
+    const target = document.getElementById(sectionId);
+    if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
-function initShopStatusListener() {
-    ConfigService.subscribeShopStatus((data) => {
-        isShopOpen = data ? (data.isOpen !== undefined ? data.isOpen : (data.open !== undefined ? data.open : true)) : true;
-        updateShopStatusUI();
-    });
-}
+function onSearchInput() {
+    const input = document.getElementById('searchInput');
+    const term = (input ? input.value : '').toLowerCase().trim();
+    const cards = document.querySelectorAll('.menu-item-card');
 
-function updateShopStatusUI() {
-    const statusBadge = document.getElementById('statusBadge');
-    if (statusBadge) {
-        if (isShopOpen) {
-            statusBadge.className = 'status-badge open';
-            statusBadge.innerHTML = '<span class="dot animate-pulse"></span> Aberto agora para pedidos';
+    cards.forEach(card => {
+        const title = card.querySelector('.product-title')?.innerText.toLowerCase() || '';
+        const desc = card.querySelector('.product-desc')?.innerText.toLowerCase() || '';
+        if (title.includes(term) || desc.includes(term)) {
+            card.style.display = 'flex';
         } else {
-            statusBadge.className = 'status-badge closed';
-            statusBadge.innerHTML = '<span class="dot"></span> Fechado no momento';
-        }
-    }
-    
-    // Disable/enable checkout button and update text in cart UI
-    updateCartUI();
-}
-
-function seedFirebaseMenu() {}
-function getMinPriceForSize(sizeKey) {
-    let min = Infinity;
-    const pizzas = MENU_ITEMS.pizzas || [];
-    pizzas.forEach(p => {
-        if (p.prices && p.prices[sizeKey] && p.prices[sizeKey] > 0) {
-            if (p.prices[sizeKey] < min) min = p.prices[sizeKey];
+            card.style.display = 'none';
         }
     });
-    return min === Infinity ? 0 : min;
 }
 
-function getPizzaTypesDynamic() {
-    const minB = getMinPriceForSize('B');
-    const minM = getMinPriceForSize('M');
-    const minG = getMinPriceForSize('G');
-    const minF = getMinPriceForSize('F');
-    
-    return [
-        {
-            id: 'brotinho',
-            name: 'Pizza Brotinho',
-            description: `Brotinho (20cm) • 4 fatias • 1 sabor • A partir de R$ ${minB.toFixed(2).replace('.', ',')}`,
-            image: 'assets/pizza_media.jpg',
-            priceMin: minB,
-            priceMax: minB
-        },
-        {
-            id: 'media',
-            name: 'Pizza Média',
-            description: `Média (25cm) • 6 fatias • Até 2 sabores • A partir de R$ ${minM.toFixed(2).replace('.', ',')}`,
-            image: 'assets/pizza_media.jpg',
-            priceMin: minM,
-            priceMax: minM
-        },
-        {
-            id: 'grande',
-            name: 'Pizza Grande',
-            description: `Grande (35cm) • 12 fatias • Até 3 sabores • A partir de R$ ${minG.toFixed(2).replace('.', ',')}`,
-            image: 'assets/pizza_grande.jpg',
-            priceMin: minG,
-            priceMax: minG
-        },
-        {
-            id: 'familia',
-            name: 'Pizza Família',
-            description: `Família (40cm) • 16 fatias • Até 4 sabores • A partir de R$ ${minF.toFixed(2).replace('.', ',')}`,
-            image: 'assets/pizza_grande.jpg',
-            priceMin: minF,
-            priceMax: minF
-        }
-    ];
+function openPromoModal() {
+    const modal = document.getElementById('promoModal');
+    if (modal) modal.classList.add('active');
 }
 
-function renderCustomizerBorders() {
-    const container = document.getElementById('bordersContainer');
+function closePromoModal() {
+    const modal = document.getElementById('promoModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
     if (!container) return;
-    
-    container.innerHTML = '';
-    
-    // Check if the current selection contains only sweet flavors
-    let hasSalty = false;
-    let hasSweet = false;
-    
-    currentPizza.selectedFlavors.forEach(flavorId => {
-        const flavorData = MENU_ITEMS.pizzas.find(p => p.id === flavorId);
-        if (flavorData) {
-            if (flavorData.category === 'doces') {
-                hasSweet = true;
-            } else {
-                hasSalty = true;
-            }
-        }
-    });
-    
-    // Determine target category
-    const targetCategory = hasSweet ? 'doces' : 'salgadas';
-    
-    // Render borders based on category
-    Object.keys(BORDAS).forEach(key => {
-        const border = BORDAS[key];
-        
-        // Determinar se a borda pertence à categoria desejada
-        let borderCat = border.category;
-        if (!borderCat) {
-            // Fallback para dados legados no Firebase
-            if (key === 'sem-borda') {
-                borderCat = 'ambas';
-            } else {
-                const cleanKey = key.toLowerCase();
-                if (cleanKey.includes('choco') || cleanKey.includes('doce') || cleanKey.includes('leite') || cleanKey.includes('misto')) {
-                    borderCat = 'doces';
-                } else {
-                    borderCat = 'salgadas';
-                }
-            }
-        }
-        
-        // Se a pizza é doce (hasSweet = true), mostramos apenas as doces e 'ambas'
-        // Se a pizza é salgada (targetCategory === 'salgadas'), mostramos salgadas, doces e 'ambas' (todas)
-        if (targetCategory === 'doces' && borderCat !== 'ambas' && borderCat !== 'doces') {
-            return;
-        }
-        
-        const isChecked = currentPizza.border === key ? 'checked' : '';
-        const priceLabel = border.price === 0 ? 'Grátis' : `+ R$ ${border.price.toFixed(2).replace('.', ',')}`;
-        
-        const label = document.createElement('label');
-        label.className = 'border-card';
-        label.innerHTML = `
-            <input type="radio" name="pizza-border" value="${key}" data-price="${border.price}" ${isChecked}>
-            <div class="border-card-content">
-                <span>${border.name}</span>
-                <span class="border-price">${priceLabel}</span>
-            </div>
-        `;
-        container.appendChild(label);
-    });
-    
-    // Ensure one radio is checked if selection was reset
-    const checkedRadio = container.querySelector('input[name="pizza-border"]:checked');
-    if (!checkedRadio) {
-        const defaultRadio = container.querySelector('input[name="pizza-border"][value="sem-borda"]');
-        if (defaultRadio) {
-            defaultRadio.checked = true;
-            currentPizza.border = 'sem-borda';
-        }
-    }
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span class="material-symbols-rounded">check_circle</span> <span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
+
+function showGlobalLoading(text = 'Carregando...') {
+    const overlay = document.getElementById('globalLoading');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingText) loadingText.innerText = text;
+    if (overlay) overlay.classList.remove('display-none');
+}
+
+function hideGlobalLoading() {
+    const overlay = document.getElementById('globalLoading');
+    if (overlay) overlay.classList.add('display-none');
+}
+
+
+
