@@ -279,6 +279,44 @@ function populateNeighborhoodSelect(deliveryFees) {
    Catalog Rendering
    ========================================================================== */
 function resolveProductImage(item, categoryKey) {
+    if (categoryKey === 'bebidas' || item?.category === 'bebidas') {
+        const id = (item?.id || '').toLowerCase();
+        const name = (item?.name || item?.nome || '').toLowerCase();
+        const currentImg = (item?.image || '').toLowerCase();
+
+        // Se já apontar para uma foto específica existente dentro de assets/bebidas/, mantém
+        if (item?.image && typeof item.image === 'string' && item.image.includes('assets/bebidas/')) {
+            return item.image;
+        }
+
+        if (id.includes('guarana') || name.includes('guaran') || currentImg.includes('guarana')) {
+            if (id.includes('2l') || name.includes('2l') || name.includes('2 litro')) return 'assets/bebidas/guarana_2l.jpg';
+            if (id.includes('600') || name.includes('600')) return 'assets/bebidas/guarana_600.jpg';
+            if (id.includes('lata') || name.includes('lata') || id.includes('350') || name.includes('350')) return 'assets/bebidas/guarana_350.jpg';
+            return 'assets/bebidas/guarana_2l.jpg';
+        }
+        if (id.includes('coca') || name.includes('coca') || currentImg.includes('coca')) {
+            if (id.includes('zero') || name.includes('zero')) {
+                if (id.includes('600') || name.includes('600')) return 'assets/bebidas/coca_zero_600.jpg';
+                return 'assets/bebidas/coca_zero_350.jpg';
+            }
+            if (id.includes('2l') || name.includes('2l') || name.includes('2 litro')) return 'assets/bebidas/coca_2l.jpg';
+            if (id.includes('600') || name.includes('600')) return 'assets/bebidas/coca_600.jpg';
+            if (id.includes('lata') || name.includes('lata') || id.includes('350') || name.includes('350')) return 'assets/bebidas/coca_350.jpg';
+            return 'assets/bebidas/coca_2l.jpg';
+        }
+        if (id.includes('agua') || name.includes('água') || name.includes('agua') || currentImg.includes('agua')) {
+            return 'assets/bebidas/agua_sem_gas_500.jpg';
+        }
+        if (id.includes('elev') || name.includes('elev') || name.includes('energ')) {
+            return 'assets/bebidas/energetico_elev_2l.jpg';
+        }
+        if (id.includes('vinho') || name.includes('vinho')) {
+            return 'assets/bebidas/vinho.jpg';
+        }
+        return 'assets/bebidas/coca_2l.jpg';
+    }
+
     if (item && item.image && typeof item.image === 'string' && item.image.trim() !== '') {
         return item.image;
     }
@@ -293,33 +331,6 @@ function resolveProductImage(item, categoryKey) {
     }
     if (categoryKey === 'calzones') {
         return 'assets/calzones/calzone_artesanal.jpg';
-    }
-    if (categoryKey === 'bebidas') {
-        const id = (item?.id || '').toLowerCase();
-        const name = (item?.name || item?.nome || '').toLowerCase();
-        if (id.includes('guarana') || name.includes('guaran')) {
-            if (id.includes('2l') || name.includes('2l') || name.includes('2 litro')) return 'assets/bebidas/guarana_2l.jpg';
-            if (id.includes('600') || name.includes('600')) return 'assets/bebidas/guarana_600.jpg';
-            if (id.includes('lata') || name.includes('lata') || id.includes('350')) return 'assets/bebidas/guarana_350.jpg';
-            return 'assets/bebidas/guarana_2l.jpg';
-        }
-        if (id.includes('coca') || name.includes('coca')) {
-            if (id.includes('zero') || name.includes('zero')) return 'assets/bebidas/coca_zero_350.jpg';
-            if (id.includes('2l') || name.includes('2l') || name.includes('2 litro')) return 'assets/bebidas/coca_2l.jpg';
-            if (id.includes('600') || name.includes('600')) return 'assets/bebidas/coca_600.jpg';
-            if (id.includes('lata') || name.includes('lata') || id.includes('350')) return 'assets/bebidas/coca_350.jpg';
-            return 'assets/bebidas/coca_2l.jpg';
-        }
-        if (id.includes('agua') || name.includes('água') || name.includes('agua')) {
-            return 'assets/bebidas/agua_sem_gas_500.jpg';
-        }
-        if (id.includes('elev') || name.includes('elev') || name.includes('energ')) {
-            return 'assets/bebidas/energetico_elev_2l.jpg';
-        }
-        if (id.includes('vinho') || name.includes('vinho')) {
-            return 'assets/bebidas/vinho.jpg';
-        }
-        return 'assets/bebidas/coca_2l.jpg';
     }
     return 'assets/pizza_hero.png';
 }
@@ -485,7 +496,7 @@ function renderCategoryGrid(categoryKey, gridElementId) {
         const badgeHTML = item.badge ? `<span class="product-badge">${item.badge}</span>` : '';
         const displayPrice = item.displayPrice !== undefined ? item.displayPrice : (item.price !== undefined ? item.price : (item.basePrice || 0));
         const priceFormatted = Number(displayPrice || 0).toFixed(2).replace('.', ',');
-        const fallbackImg = resolveProductImage(item, categoryKey);
+        const fallbackImg = (categoryKey === 'bebidas') ? 'assets/bebidas/coca_2l.jpg' : (categoryKey === 'calzones' ? 'assets/calzones/calzone_artesanal.jpg' : 'assets/pizza_hero.png');
         const imgSrc = resolveProductImage(item, categoryKey);
 
         card.innerHTML = `

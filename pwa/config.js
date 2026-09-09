@@ -7,8 +7,8 @@ window.PWA_CONFIG = {
   ENABLE_PWA: true,
 
   // Versão atual do PWA
-  APP_VERSION: '2.3.0',
-  CACHE_VERSION: 'fina-massa-v2.3.0',
+  APP_VERSION: '2.6.0',
+  CACHE_VERSION: 'fina-massa-v2.6.0',
 
   // Período de ocultamento do modal caso o usuário clique em "Continuar no Navegador" (em dias)
   DISMISS_DAYS: 30,

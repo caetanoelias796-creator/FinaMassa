@@ -3,7 +3,7 @@
    Versão Centralizada: fina-massa-v2.0.0
    ========================================================================== */
 
-const CACHE_NAME = 'fina-massa-v2.5.0';
+const CACHE_NAME = 'fina-massa-v2.6.0';
 const CACHE_PREFIX = 'fina-massa-';
 
 // Lista de ativos estáticos essenciais para funcionamento offline
@@ -24,6 +24,21 @@ const STATIC_ASSETS = [
     './assets/pizza_banner.png',
     './assets/icon-192.png',
     './assets/icon-512.png',
+    './assets/coca_cola.png',
+    './assets/guarana.png',
+    './assets/agua.png',
+    './assets/bebidas/coca_2l.jpg',
+    './assets/bebidas/coca_600.jpg',
+    './assets/bebidas/coca_350.jpg',
+    './assets/bebidas/coca_zero_350.jpg',
+    './assets/bebidas/coca_zero_600.jpg',
+    './assets/bebidas/guarana_2l.jpg',
+    './assets/bebidas/guarana_600.jpg',
+    './assets/bebidas/guarana_350.jpg',
+    './assets/bebidas/agua_sem_gas_500.jpg',
+    './assets/bebidas/energetico_elev_2l.jpg',
+    './assets/bebidas/vinho.jpg',
+    './assets/calzones/calzone_artesanal.jpg',
     './pwa/config.js',
     './pwa/cacheManager.js',
     './pwa/updateManager.js',
