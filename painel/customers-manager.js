@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ==============================================================================
  * FINA MASSA PIZZARIA — GERENCIADOR DE CLIENTES (CUSTOMERS MANAGER)
  * ==============================================================================
@@ -256,6 +256,7 @@ function openCustomerDetailsModal(cleanPhone) {
     if (addressEl) addressEl.textContent = fullAddr;
 
     let custOrders = [];
+    let totalSpent = Number(customer.totalSpent || 0);
     if (typeof orders !== 'undefined' && Array.isArray(orders)) {
         custOrders = orders.filter(o => {
             if (!o || !o.clientPhone) return false;
@@ -263,9 +264,26 @@ function openCustomerDetailsModal(cleanPhone) {
             return oPhone === cleanPhone || (customer.name && o.clientName && normalizeCustomerText(o.clientName) === normalizeCustomerText(customer.name));
         });
         custOrders.sort((a, b) => (Number(b.timestamp || b.id) || 0) - (Number(a.timestamp || a.id) || 0));
+        if (custOrders.length > 0) {
+            let sum = 0;
+            custOrders.forEach(o => sum += (Number(o.total) || 0));
+            totalSpent = sum;
+        }
     }
 
-    if (ordersCountEl) ordersCountEl.textContent = `${custOrders.length} pedido(s) realizados`;
+    const totalOrdersCount = custOrders.length || customer.totalOrders || 0;
+    const lastOrderText = (custOrders.length > 0 && custOrders[0].date) 
+        ? `${custOrders[0].date} ${custOrders[0].time ? 'às ' + custOrders[0].time : ''}` 
+        : (customer.lastOrderDate || (customer.lastOrderAt ? new Date(customer.lastOrderAt).toLocaleDateString('pt-BR') : 'Nunca'));
+
+    const ordersTotalEl = document.getElementById('custDetailsOrdersTotal');
+    const spentTotalEl = document.getElementById('custDetailsSpentTotal');
+    const lastOrderEl = document.getElementById('custDetailsLastOrder');
+
+    if (ordersTotalEl) ordersTotalEl.textContent = totalOrdersCount;
+    if (spentTotalEl) spentTotalEl.textContent = `R$ ${totalSpent.toFixed(2).replace('.', ',')}`;
+    if (lastOrderEl) lastOrderEl.textContent = lastOrderText;
+    if (ordersCountEl) ordersCountEl.textContent = `${totalOrdersCount} pedido(s) realizados`;
 
     const historyList = document.getElementById('custDetailsHistoryList');
     const historyEmpty = document.getElementById('custDetailsHistoryEmpty');

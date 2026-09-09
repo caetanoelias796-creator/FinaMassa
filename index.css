@@ -1627,3 +1627,421 @@ body:has(.cart-drawer-overlay.active) .floating-cart-btn {
         max-width: 100%;
     }
 }
+
+/* ==========================================================================
+   11. SISTEMA DE IDENTIFICAÇÃO E LOGIN WHATSAPP (FINA MASSA)
+   ========================================================================== */
+
+/* Botão de Perfil / Login no Top Header */
+.btn-customer-account {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    backdrop-filter: blur(8px);
+}
+.btn-customer-account:hover {
+    background: rgba(245, 166, 35, 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+.btn-customer-account.logged-in {
+    background: rgba(245, 166, 35, 0.12);
+    border-color: rgba(245, 166, 35, 0.4);
+    color: var(--primary);
+}
+.btn-customer-account .material-symbols-rounded {
+    font-size: 18px;
+}
+
+/* Card do Modal de Autenticação */
+.auth-card {
+    max-width: 420px;
+    width: 92%;
+    background: var(--bg-modal);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 28px 24px 24px;
+    position: relative;
+    box-shadow: var(--shadow-modal);
+    text-align: center;
+    color: var(--text-main);
+}
+.auth-card-header {
+    margin-bottom: 22px;
+}
+.auth-logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 12px;
+    display: block;
+    box-shadow: 0 4px 16px rgba(245, 166, 35, 0.25);
+    border: 2px solid var(--primary);
+}
+.auth-brand-name {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--text-main);
+    margin: 0 0 6px;
+    text-transform: uppercase;
+}
+.auth-brand-tagline {
+    font-size: 13.5px;
+    color: var(--primary);
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Passos de Autenticação */
+.auth-step {
+    animation: fadeIn 0.25s ease-in-out;
+}
+.auth-instruction {
+    font-size: 14px;
+    color: var(--text-body);
+    margin: 0 0 14px;
+    font-weight: 500;
+}
+.auth-input-wrapper {
+    position: relative;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+}
+.auth-input-icon {
+    position: absolute;
+    left: 14px;
+    color: var(--primary);
+    font-size: 20px;
+    pointer-events: none;
+}
+.auth-input {
+    width: 100%;
+    padding: 13px 14px 13px 44px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    font-size: 15.5px;
+    font-weight: 600;
+    outline: none;
+    transition: var(--transition);
+    box-sizing: border-box;
+}
+.auth-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2);
+    background: var(--bg-surface);
+}
+.auth-error-msg {
+    color: var(--status-red);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-align: left;
+    padding: 6px 10px;
+    background: rgba(255, 71, 87, 0.1);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 71, 87, 0.25);
+}
+.auth-action-btn {
+    width: 100%;
+    padding: 13px;
+    font-size: 14.5px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 14px rgba(245, 166, 35, 0.3);
+}
+.auth-secondary-action {
+    margin-top: 14px;
+}
+.btn-text-link {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: var(--transition);
+}
+.btn-text-link:hover {
+    color: var(--primary);
+}
+
+/* Passo 2: Novo Cliente */
+.auth-welcome-badge {
+    display: inline-block;
+    background: rgba(245, 166, 35, 0.15);
+    color: var(--primary);
+    border: 1px solid rgba(245, 166, 35, 0.35);
+    padding: 5px 12px;
+    border-radius: var(--radius-full);
+    font-size: 11.5px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+/* Passo 3: Cliente Existente */
+.auth-welcome-back-header {
+    margin-bottom: 20px;
+}
+.auth-avatar-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    box-shadow: 0 4px 14px rgba(245, 166, 35, 0.35);
+}
+.auth-welcome-title {
+    font-size: 19px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    color: var(--text-main);
+}
+.auth-welcome-subtitle {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin: 0;
+}
+.auth-options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.auth-option-btn {
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: var(--transition);
+    cursor: pointer;
+}
+.auth-option-btn.primary-option {
+    box-shadow: 0 4px 14px rgba(245, 166, 35, 0.25);
+}
+.auth-option-btn.secondary-option {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+.auth-option-btn.secondary-option:hover {
+    background: var(--bg-card);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* Modal Meus Pedidos */
+.customer-orders-card {
+    max-width: 580px;
+    width: 95%;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-modal);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+}
+.customer-orders-body {
+    padding: 18px;
+    overflow-y: auto;
+    flex: 1;
+}
+.orders-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.order-history-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    transition: var(--transition);
+}
+.order-history-card:hover {
+    border-color: rgba(245, 166, 35, 0.4);
+}
+.order-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.order-history-num {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+.order-history-date {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-left: 6px;
+}
+.order-history-items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px;
+}
+.order-history-item-row {
+    font-size: 12.5px;
+    color: var(--text-body);
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+.order-history-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+}
+.order-history-total {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--primary);
+}
+.orders-empty-state,
+.orders-loading-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+.orders-empty-state h3 {
+    color: var(--text-main);
+    font-size: 16px;
+    margin: 12px 0 6px;
+}
+
+/* Modal Minha Conta */
+.customer-account-card {
+    max-width: 440px;
+    width: 92%;
+    background: var(--bg-modal);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+}
+.customer-account-body {
+    padding: 22px;
+}
+.account-avatar-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    margin-bottom: 20px;
+}
+.account-avatar-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #0B0C0E;
+    font-size: 20px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.account-avatar-info h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.account-phone-badge {
+    font-size: 12px;
+    color: var(--primary);
+    font-weight: 600;
+}
+.account-section {
+    margin-bottom: 20px;
+}
+.account-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.account-input-group {
+    display: flex;
+    gap: 8px;
+}
+.btn-save-name {
+    padding: 0 18px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    white-space: nowrap;
+}
+.account-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+}
+.account-menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.account-menu-item:hover {
+    background: var(--bg-card);
+    border-color: var(--primary);
+}
+.account-menu-item.logout-item:hover {
+    border-color: var(--status-red);
+    color: var(--status-red);
+}
+

@@ -48,6 +48,10 @@
                     <span class="dot animate-pulse"></span>
                     Aberto agora para pedidos
                 </div>
+                <button type="button" class="btn-customer-account" id="customerAccountBtn" onclick="openCustomerAuthOrAccount()" title="Identificação / Minha Conta">
+                    <span class="material-symbols-rounded">person</span>
+                    <span id="customerAccountBtnLabel">Entrar</span>
+                </button>
             </div>
             
             <div class="brand-wrapper pizzeria-brand-wrapper">
@@ -490,7 +494,184 @@
             </div>
             <span>Carrinho</span>
         </a>
+        <a href="#" class="bottom-nav-item" id="bottomNavAccountItem" onclick="openCustomerAuthOrAccount(); return false;">
+            <span class="material-symbols-rounded">person</span>
+            <span id="bottomNavAccountLabel">Entrar</span>
+        </a>
     </nav>
+
+    <!-- Modal de Identificação e Login por WhatsApp -->
+    <div class="modal-overlay" id="customerAuthModal">
+        <div class="modal-card auth-card">
+            <button class="btn-close-circle" onclick="closeCustomerAuthModal()" title="Fechar">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+            <div class="auth-card-header">
+                <img src="assets/logo.png" alt="Fina Massa Pizzaria" class="auth-logo">
+                <h2 class="auth-brand-name">FINA MASSA PIZZARIA</h2>
+                <p class="auth-brand-tagline">Sua pizza favorita está a poucos cliques. 🍕</p>
+            </div>
+
+            <!-- Passo 1: Informar WhatsApp -->
+            <div class="auth-step active" id="authStepPhone">
+                <p class="auth-instruction">Digite seu WhatsApp para continuar:</p>
+                <div class="auth-input-wrapper">
+                    <span class="material-symbols-rounded auth-input-icon">chat</span>
+                    <input type="tel" id="authPhoneInput" class="auth-input" placeholder="(54) 99999-9999" maxlength="15" autocomplete="tel" inputmode="numeric" oninput="maskAuthPhoneInput(this)" onkeydown="if(event.key==='Enter') handleCustomerPhoneSubmit()">
+                </div>
+                <div id="authPhoneError" class="auth-error-msg display-none"></div>
+
+                <button type="button" class="btn btn-primary auth-action-btn" id="btnContinuePhone" onclick="handleCustomerPhoneSubmit()">
+                    <span>CONTINUAR</span>
+                    <span class="material-symbols-rounded">arrow_forward</span>
+                </button>
+
+                <div class="auth-secondary-action">
+                    <button type="button" class="btn-text-link" onclick="closeCustomerAuthModal()">
+                        Explorar o cardápio primeiro
+                    </button>
+                </div>
+            </div>
+
+            <!-- Passo 2: Novo Cliente - Apenas Nome -->
+            <div class="auth-step display-none" id="authStepNewCustomer">
+                <div class="auth-welcome-badge">PRAZER EM CONHECER VOCÊ! 👋</div>
+                <p class="auth-instruction">Como podemos te chamar?</p>
+                <div class="auth-input-wrapper">
+                    <span class="material-symbols-rounded auth-input-icon">person</span>
+                    <input type="text" id="authNameInput" class="auth-input" placeholder="Seu nome" maxlength="50" autocomplete="name" onkeydown="if(event.key==='Enter') handleCustomerRegisterSubmit()">
+                </div>
+                <div id="authNameError" class="auth-error-msg display-none"></div>
+
+                <button type="button" class="btn btn-primary auth-action-btn" id="btnStartOrdering" onclick="handleCustomerRegisterSubmit()">
+                    <span>COMEÇAR A PEDIR 🍕</span>
+                </button>
+
+                <div class="auth-secondary-action">
+                    <button type="button" class="btn-text-link" onclick="backToPhoneStep()">
+                        ← Voltar e alterar número
+                    </button>
+                </div>
+            </div>
+
+            <!-- Passo 3: Cliente Existente - Reconhecido -->
+            <div class="auth-step display-none" id="authStepExistingCustomer">
+                <div class="auth-welcome-back-header">
+                    <div class="auth-avatar-circle">
+                        <span class="material-symbols-rounded" style="font-size: 32px; color: #0B0C0E;">waving_hand</span>
+                    </div>
+                    <h3 class="auth-welcome-title">Olá, <span id="authExistingCustomerName">Cliente</span>! 👋</h3>
+                    <p class="auth-welcome-subtitle">Que bom ter você de volta.</p>
+                </div>
+
+                <div class="auth-options-grid">
+                    <button type="button" class="btn btn-primary auth-option-btn primary-option" onclick="selectAuthAction('order')">
+                        <span class="material-symbols-rounded">local_pizza</span>
+                        <span>🍕 FAZER PEDIDO</span>
+                    </button>
+                    <button type="button" class="btn auth-option-btn secondary-option" onclick="selectAuthAction('orders')">
+                        <span class="material-symbols-rounded">receipt_long</span>
+                        <span>📦 MEUS PEDIDOS</span>
+                    </button>
+                    <button type="button" class="btn auth-option-btn secondary-option" onclick="selectAuthAction('account')">
+                        <span class="material-symbols-rounded">account_circle</span>
+                        <span>👤 MINHA CONTA</span>
+                    </button>
+                </div>
+
+                <div class="auth-secondary-action" style="margin-top: 16px;">
+                    <button type="button" class="btn-text-link" onclick="handleCustomerLogout()">
+                        Não é você? Trocar de número
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Meus Pedidos -->
+    <div class="modal-overlay" id="customerOrdersModal">
+        <div class="modal-card customer-orders-card">
+            <div class="checkout-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-rounded" style="color: var(--primary); font-size: 24px;">receipt_long</span>
+                    <h2>Meus Pedidos</h2>
+                </div>
+                <button class="btn-close-circle" onclick="closeCustomerOrdersModal()">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            
+            <div class="customer-orders-body">
+                <div id="customerOrdersLoading" class="orders-loading-state display-none">
+                    <div class="loading-spinner"></div>
+                    <span>Buscando seus pedidos...</span>
+                </div>
+
+                <div id="customerOrdersEmpty" class="orders-empty-state display-none">
+                    <span class="material-symbols-rounded" style="font-size: 48px; color: var(--text-muted); opacity: 0.6;">shopping_bag</span>
+                    <h3>Nenhum pedido encontrado</h3>
+                    <p>Você ainda não realizou pedidos com este WhatsApp. Monte sua pizza e aproveite!</p>
+                    <button type="button" class="btn btn-primary" onclick="closeCustomerOrdersModal()" style="margin-top: 14px;">
+                        Ver Cardápio 🍕
+                    </button>
+                </div>
+
+                <div id="customerOrdersList" class="orders-history-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Minha Conta -->
+    <div class="modal-overlay" id="customerAccountModal">
+        <div class="modal-card customer-account-card">
+            <div class="checkout-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-rounded" style="color: var(--primary); font-size: 24px;">account_circle</span>
+                    <h2>Minha Conta</h2>
+                </div>
+                <button class="btn-close-circle" onclick="closeCustomerAccountModal()">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+
+            <div class="customer-account-body">
+                <div class="account-avatar-wrapper">
+                    <div class="account-avatar-icon" id="accountAvatarLetter">C</div>
+                    <div class="account-avatar-info">
+                        <h3 id="accountDisplayName">Cliente</h3>
+                        <span class="account-phone-badge" id="accountDisplayPhone">(00) 00000-0000</span>
+                    </div>
+                </div>
+
+                <div class="account-section">
+                    <label for="accountNameInput" class="account-label">Editar Nome</label>
+                    <div class="account-input-group">
+                        <input type="text" id="accountNameInput" class="auth-input" placeholder="Seu nome" maxlength="50">
+                        <button type="button" class="btn btn-primary btn-save-name" onclick="saveCustomerAccountName()">
+                            <span>Salvar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="account-actions-list">
+                    <button type="button" class="account-menu-item" onclick="openCustomerOrdersModalFromAccount()">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="material-symbols-rounded" style="color: var(--primary);">receipt_long</span>
+                            <span>Consultar Meus Pedidos</span>
+                        </div>
+                        <span class="material-symbols-rounded" style="color: var(--text-muted);">chevron_right</span>
+                    </button>
+
+                    <button type="button" class="account-menu-item logout-item" onclick="handleCustomerLogout()">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="material-symbols-rounded" style="color: var(--status-red, #ff4757);">logout</span>
+                            <span>Sair / Trocar de Número</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notifications Container -->
     <div id="toastContainer" class="toast-container"></div>
@@ -515,8 +696,11 @@
     <!-- Pizza Engine Core Logic -->
     <script src="PizzaEngine.js?v=2"></script>
 
+    <!-- WhatsApp Customer Auth Module -->
+    <script src="CustomerAuth.js?v=1"></script>
+
     <!-- Core App Logic -->
-    <script src="app.js?v=18"></script>
+    <script src="app.js?v=19"></script>
 
     <!-- PWA Master Initializer -->
     <script src="pwa/pwa-init.js?v=2"></script>

@@ -6,7 +6,8 @@
     },
     "orders": {
       ".read": true,
-      ".write": true
+      ".write": true,
+      ".indexOn": ["customerPhone", "clientPhone", "customerId"]
     },
     "tables": {
       ".read": true,

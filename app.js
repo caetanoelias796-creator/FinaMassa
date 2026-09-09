@@ -75,6 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchMenu();
     listenToStoreStatus();
     initTracking();
+    if (typeof initCustomerAuthSession === 'function') {
+        initCustomerAuthSession();
+    }
 });
 
 function initTracking() {
@@ -1523,12 +1526,24 @@ function onNeighborhoodChange() {
    ========================================================================== */
 function openCheckoutModal() {
     if (cart.length === 0) {
-        showToast('Seu carrinho estÃ¡ vazio!', 'warning');
+        showToast('Seu carrinho está vazio!', 'warning');
         return;
     }
     toggleCart(false);
     const modal = document.getElementById('checkoutModal');
     if (modal) modal.classList.add('active');
+
+    // Pré-preenchimento com dados do cliente autenticado via WhatsApp
+    if (typeof CustomerAuth !== 'undefined') {
+        const cust = CustomerAuth.getSession();
+        if (cust) {
+            const nameInput = document.getElementById('clientName');
+            const phoneInput = document.getElementById('clientPhone');
+            if (nameInput && !nameInput.value) nameInput.value = cust.name || '';
+            if (phoneInput && !phoneInput.value) phoneInput.value = cust.phoneFormatted || CustomerAuth.formatPhone(cust.normalizedPhone);
+        }
+    }
+
     onNeighborhoodChange();
     togglePaymentFields();
 
@@ -1581,13 +1596,13 @@ function captureCustomerLocation() {
     const btn = document.getElementById('btnGetLocation');
 
     if (!navigator.geolocation) {
-        alert("GeolocalizaÃ§Ã£o nÃ£o suportada no seu navegador.");
+        alert("Geolocalização não suportada no seu navegador.");
         return;
     }
 
     if (statusDiv) {
         statusDiv.style.display = 'block';
-        statusDiv.innerText = 'Obtendo localizaÃ§Ã£o GPS...';
+        statusDiv.innerText = 'Obtendo localização GPS...';
     }
 
     navigator.geolocation.getCurrentPosition((pos) => {
@@ -1598,13 +1613,13 @@ function captureCustomerLocation() {
         };
         if (statusDiv) {
             statusDiv.style.color = '#25d366';
-            statusDiv.innerText = 'âœ“ LocalizaÃ§Ã£o GPS capturada com sucesso!';
+            statusDiv.innerText = '✓ Localização GPS capturada com sucesso!';
         }
         if (btn) btn.classList.add('location-success');
     }, (err) => {
         if (statusDiv) {
             statusDiv.style.color = '#ef5350';
-            statusDiv.innerText = 'NÃ£o foi possÃ­vel obter a localizaÃ§Ã£o. Preencha seu endereÃ§o normalmente.';
+            statusDiv.innerText = 'Não foi possível obter a localização. Preencha seu endereço normalmente.';
         }
     }, { enableHighAccuracy: true, timeout: 10000 });
 }
@@ -1616,6 +1631,11 @@ function submitOrder() {
     let clientName = nameInput ? nameInput.value.trim() : '';
     let clientPhone = phoneInput ? phoneInput.value.trim() : '';
 
+    const currentCustomer = (typeof CustomerAuth !== 'undefined') ? CustomerAuth.getSession() : null;
+    const cleanPhone = (typeof CustomerAuth !== 'undefined') 
+        ? CustomerAuth.normalizePhone(clientPhone || (currentCustomer ? currentCustomer.normalizedPhone : '')) 
+        : (clientPhone.replace(/\D/g, ''));
+
     if (checkoutType === 'delivery') {
         if (!clientName || !clientPhone) {
             showToast('Preencha seu nome e WhatsApp para a entrega!', 'warning');
@@ -1624,9 +1644,9 @@ function submitOrder() {
             return;
         }
     } else {
-        // Retirada no balcÃ£o sem necessidade de cadastro obrigatÃ³rio
-        if (!clientName) clientName = 'Cliente Retirada';
-        if (!clientPhone) clientPhone = 'BalcÃ£o';
+        // Retirada no balcão
+        if (!clientName) clientName = currentCustomer ? currentCustomer.name : 'Cliente Retirada';
+        if (!clientPhone) clientPhone = currentCustomer ? (currentCustomer.phoneFormatted || currentCustomer.normalizedPhone) : 'Balcão';
     }
 
     let addressData = null;
@@ -1638,7 +1658,7 @@ function submitOrder() {
         const reference = document.getElementById('addressRef')?.value.trim() || '';
 
         if (!street || !number) {
-            showToast('Preencha a rua e o nÃºmero da sua entrega!', 'warning');
+            showToast('Preencha a rua e o número da sua entrega!', 'warning');
             return;
         }
 
@@ -1660,6 +1680,10 @@ function submitOrder() {
 
     const orderData = {
         id: orderId,
+        customerId: (currentCustomer && currentCustomer.id) ? currentCustomer.id : (cleanPhone || String(orderId)),
+        customerName: clientName,
+        customerPhone: cleanPhone || clientPhone,
+        normalizedPhone: cleanPhone || clientPhone,
         clientName: clientName,
         clientPhone: clientPhone,
         checkoutType: checkoutType,
@@ -1685,6 +1709,25 @@ function submitOrder() {
         cart = [];
         saveCartToStorage();
         updateCartUI();
+
+        // Atualização atômica das métricas do cliente (sem duplicação)
+        if (typeof CustomerAuth !== 'undefined' && cleanPhone && cleanPhone.length >= 8) {
+            CustomerAuth.updateCustomerStatsOnOrder(cleanPhone, total, orderId);
+
+            // Se não possuía sessão ativa no navegador, salva para que futuras visitas o reconheçam
+            if (!CustomerAuth.getSession()) {
+                CustomerAuth.saveSession({
+                    id: cleanPhone,
+                    customerId: cleanPhone,
+                    name: clientName,
+                    normalizedPhone: cleanPhone,
+                    phoneFormatted: clientPhone
+                });
+                if (typeof initCustomerAuthSession === 'function') {
+                    initCustomerAuthSession();
+                }
+            }
+        }
 
         if (typeof TrackingService !== 'undefined') {
             TrackingService.trackPurchase(orderData);
@@ -1846,6 +1889,437 @@ function showGlobalLoading(text = 'Carregando...') {
 function hideGlobalLoading() {
     const overlay = document.getElementById('globalLoading');
     if (overlay) overlay.classList.add('display-none');
+}
+
+/* ==========================================================================
+   Customer WhatsApp Auth & Account Controls (Fina Massa)
+   ========================================================================== */
+
+let pendingAuthPhone = '';
+
+function initCustomerAuthSession() {
+    if (typeof CustomerAuth === 'undefined') return;
+    const cust = CustomerAuth.getSession();
+
+    const headerBtn = document.getElementById('customerAccountBtn');
+    const headerLabel = document.getElementById('customerAccountBtnLabel');
+    const bottomItem = document.getElementById('bottomNavAccountItem');
+    const bottomLabel = document.getElementById('bottomNavAccountLabel');
+
+    if (cust && cust.name) {
+        const firstName = cust.name.trim().split(' ')[0] || 'Cliente';
+        if (headerBtn) {
+            headerBtn.classList.add('logged-in');
+            headerBtn.title = `Conectado como ${cust.name} (${cust.phoneFormatted || cust.normalizedPhone})`;
+        }
+        if (headerLabel) headerLabel.innerText = `Olá, ${firstName}`;
+        if (bottomLabel) bottomLabel.innerText = firstName;
+        if (bottomItem) bottomItem.classList.add('logged-in');
+    } else {
+        if (headerBtn) {
+            headerBtn.classList.remove('logged-in');
+            headerBtn.title = 'Identificação / Minha Conta';
+        }
+        if (headerLabel) headerLabel.innerText = 'Entrar';
+        if (bottomLabel) bottomLabel.innerText = 'Entrar';
+        if (bottomItem) bottomItem.classList.remove('logged-in');
+
+        // Primeira visita: apresenta suavemente o modal de boas-vindas
+        if (!localStorage.getItem('fina_massa_visited')) {
+            localStorage.setItem('fina_massa_visited', 'true');
+            setTimeout(() => {
+                openCustomerAuthModal();
+            }, 1200);
+        }
+    }
+}
+
+function openCustomerAuthOrAccount() {
+    if (typeof CustomerAuth === 'undefined') return;
+    const cust = CustomerAuth.getSession();
+    if (cust && cust.name) {
+        openCustomerAccountModal();
+    } else {
+        openCustomerAuthModal();
+    }
+}
+
+function openCustomerAuthModal() {
+    const modal = document.getElementById('customerAuthModal');
+    if (!modal) return;
+
+    // Reset steps
+    const stepPhone = document.getElementById('authStepPhone');
+    const stepNew = document.getElementById('authStepNewCustomer');
+    const stepExisting = document.getElementById('authStepExistingCustomer');
+    const phoneInput = document.getElementById('authPhoneInput');
+    const nameInput = document.getElementById('authNameInput');
+    const phoneErr = document.getElementById('authPhoneError');
+    const nameErr = document.getElementById('authNameError');
+
+    if (stepPhone) stepPhone.classList.remove('display-none');
+    if (stepNew) stepNew.classList.add('display-none');
+    if (stepExisting) stepExisting.classList.add('display-none');
+    if (phoneErr) phoneErr.classList.add('display-none');
+    if (nameErr) nameErr.classList.add('display-none');
+
+    if (phoneInput) {
+        phoneInput.value = '';
+        setTimeout(() => phoneInput.focus(), 250);
+    }
+    if (nameInput) nameInput.value = '';
+
+    modal.classList.add('active');
+}
+
+function closeCustomerAuthModal() {
+    const modal = document.getElementById('customerAuthModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function maskAuthPhoneInput(input) {
+    if (!input) return;
+    let v = input.value.replace(/\D/g, '');
+    if (v.length > 11) v = v.substring(0, 11);
+
+    if (v.length > 6) {
+        v = `(${v.substring(0, 2)}) ${v.substring(2, 7)}-${v.substring(7)}`;
+    } else if (v.length > 2) {
+        v = `(${v.substring(0, 2)}) ${v.substring(2)}`;
+    } else if (v.length > 0) {
+        v = `(${v}`;
+    }
+    input.value = v;
+}
+
+async function handleCustomerPhoneSubmit() {
+    const phoneInput = document.getElementById('authPhoneInput');
+    const phoneErr = document.getElementById('authPhoneError');
+    const btn = document.getElementById('btnContinuePhone');
+
+    const raw = phoneInput ? phoneInput.value.trim() : '';
+    if (typeof CustomerAuth === 'undefined') return;
+
+    if (!CustomerAuth.validatePhone(raw)) {
+        if (phoneErr) {
+            phoneErr.innerText = 'Digite um número de WhatsApp válido.';
+            phoneErr.classList.remove('display-none');
+        }
+        if (phoneInput) phoneInput.focus();
+        return;
+    }
+
+    if (phoneErr) phoneErr.classList.add('display-none');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-rounded animate-spin">progress_activity</span> <span>Verificando...</span>';
+    }
+
+    pendingAuthPhone = raw;
+
+    try {
+        const res = await CustomerAuth.identifyCustomer(raw);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>CONTINUAR</span> <span class="material-symbols-rounded">arrow_forward</span>';
+        }
+
+        const stepPhone = document.getElementById('authStepPhone');
+        const stepNew = document.getElementById('authStepNewCustomer');
+        const stepExisting = document.getElementById('authStepExistingCustomer');
+
+        if (res.exists && res.customer) {
+            // Cliente existente reconhecido
+            CustomerAuth.saveSession(res.customer);
+            initCustomerAuthSession();
+
+            const nameSpan = document.getElementById('authExistingCustomerName');
+            if (nameSpan) nameSpan.innerText = res.customer.name || 'Cliente';
+
+            if (stepPhone) stepPhone.classList.add('display-none');
+            if (stepNew) stepNew.classList.add('display-none');
+            if (stepExisting) stepExisting.classList.remove('display-none');
+        } else {
+            // Novo cliente: solicita apenas o nome
+            if (stepPhone) stepPhone.classList.add('display-none');
+            if (stepExisting) stepExisting.classList.add('display-none');
+            if (stepNew) stepNew.classList.remove('display-none');
+
+            const nameInput = document.getElementById('authNameInput');
+            if (nameInput) {
+                nameInput.value = '';
+                setTimeout(() => nameInput.focus(), 250);
+            }
+        }
+    } catch (e) {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>CONTINUAR</span> <span class="material-symbols-rounded">arrow_forward</span>';
+        }
+        if (phoneErr) {
+            phoneErr.innerText = 'Digite um número de WhatsApp válido.';
+            phoneErr.classList.remove('display-none');
+        }
+    }
+}
+
+function backToPhoneStep() {
+    const stepPhone = document.getElementById('authStepPhone');
+    const stepNew = document.getElementById('authStepNewCustomer');
+    const stepExisting = document.getElementById('authStepExistingCustomer');
+    const phoneInput = document.getElementById('authPhoneInput');
+
+    if (stepNew) stepNew.classList.add('display-none');
+    if (stepExisting) stepExisting.classList.add('display-none');
+    if (stepPhone) stepPhone.classList.remove('display-none');
+    if (phoneInput) setTimeout(() => phoneInput.focus(), 200);
+}
+
+async function handleCustomerRegisterSubmit() {
+    const nameInput = document.getElementById('authNameInput');
+    const nameErr = document.getElementById('authNameError');
+    const btn = document.getElementById('btnStartOrdering');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name || name.length < 2) {
+        if (nameErr) {
+            nameErr.innerText = 'Por favor, informe seu nome para continuarmos.';
+            nameErr.classList.remove('display-none');
+        }
+        if (nameInput) nameInput.focus();
+        return;
+    }
+
+    if (nameErr) nameErr.classList.add('display-none');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-rounded animate-spin">progress_activity</span> <span>Cadastrando...</span>';
+    }
+
+    try {
+        const res = await CustomerAuth.registerCustomer(pendingAuthPhone, name);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>COMEÇAR A PEDIR 🍕</span>';
+        }
+
+        if (res.success && res.customer) {
+            initCustomerAuthSession();
+            closeCustomerAuthModal();
+            showToast(`Prazer em ter você conosco, ${name.split(' ')[0]}! 🍕`, 'success');
+        } else {
+            if (nameErr) {
+                nameErr.innerText = res.error || 'Não foi possível concluir o cadastro.';
+                nameErr.classList.remove('display-none');
+            }
+        }
+    } catch (e) {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>COMEÇAR A PEDIR 🍕</span>';
+        }
+    }
+}
+
+function selectAuthAction(action) {
+    closeCustomerAuthModal();
+    if (action === 'order') {
+        const sec = document.getElementById('pizzas-tradicionais-section');
+        if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+    } else if (action === 'orders') {
+        openCustomerOrdersModal();
+    } else if (action === 'account') {
+        openCustomerAccountModal();
+    }
+}
+
+function handleCustomerLogout() {
+    if (typeof CustomerAuth !== 'undefined') {
+        CustomerAuth.clearSession();
+    }
+    initCustomerAuthSession();
+    closeCustomerOrdersModal();
+    closeCustomerAccountModal();
+
+    const nameInput = document.getElementById('clientName');
+    const phoneInput = document.getElementById('clientPhone');
+    if (nameInput) nameInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+
+    openCustomerAuthModal();
+    showToast('Sessão encerrada com sucesso.', 'info');
+}
+
+/* ==========================================================================
+   Meus Pedidos (Área Privada do Cliente)
+   ========================================================================== */
+async function openCustomerOrdersModal() {
+    if (typeof CustomerAuth === 'undefined') return;
+    const cust = CustomerAuth.getSession();
+    if (!cust || !cust.normalizedPhone) {
+        openCustomerAuthModal();
+        return;
+    }
+
+    const modal = document.getElementById('customerOrdersModal');
+    if (!modal) return;
+    modal.classList.add('active');
+
+    const loading = document.getElementById('customerOrdersLoading');
+    const empty = document.getElementById('customerOrdersEmpty');
+    const list = document.getElementById('customerOrdersList');
+
+    if (loading) loading.classList.remove('display-none');
+    if (empty) empty.classList.add('display-none');
+    if (list) list.innerHTML = '';
+
+    try {
+        const orders = await CustomerAuth.getCustomerOrders(cust.normalizedPhone);
+        if (loading) loading.classList.add('display-none');
+
+        if (!orders || orders.length === 0) {
+            if (empty) empty.classList.remove('display-none');
+            return;
+        }
+
+        if (empty) empty.classList.add('display-none');
+        if (list) {
+            list.innerHTML = '';
+            orders.forEach((ord) => {
+                const card = document.createElement('div');
+                card.className = 'order-history-card';
+
+                const statusColor = (ord.status === 'Entregue' || ord.status === 'Finalizado') ? '#25d366' :
+                                    (ord.status === 'Em Preparo' || ord.status === 'Saiu para Entrega') ? '#f5a623' : '#64b5f6';
+
+                const rawItems = Array.isArray(ord.cart) ? ord.cart : Object.values(ord.cart || {});
+                let itemsHtml = '';
+                rawItems.forEach(it => {
+                    let flavorsText = '';
+                    if (it.pizza && Array.isArray(it.pizza.flavors) && it.pizza.flavors.length > 0) {
+                        flavorsText = it.pizza.flavors.map(f => (f.fraction && f.fraction !== '1/1') ? `${f.fraction} ${f.name}` : f.name).join(' + ');
+                    } else if (Array.isArray(it.flavorNames) && it.flavorNames.length > 0) {
+                        flavorsText = it.flavorNames.join(' + ');
+                    }
+
+                    const crust = (it.pizza && it.pizza.crust && it.pizza.crust.name) ? it.pizza.crust.name : (it.border && it.border.name ? it.border.name : '');
+                    const crustHtml = crust ? ` <small style="color: var(--text-muted);">(Borda: ${crust})</small>` : '';
+                    const obsHtml = (it.comment || it.notes) ? ` <div style="color: #f5a623; font-size: 11px;">Obs: "${it.comment || it.notes}"</div>` : '';
+
+                    itemsHtml += `
+                        <li class="order-history-item-row">
+                            <strong>${it.quantity}x ${it.name}</strong>
+                            ${flavorsText ? `<div style="font-size: 11.5px; color: var(--text-muted); margin-top: 1px;">🍕 ${flavorsText}</div>` : ''}
+                            ${crustHtml}
+                            ${obsHtml}
+                        </li>
+                    `;
+                });
+
+                const isDelivery = ord.checkoutType === 'delivery';
+                const typeLabel = isDelivery ? '🛵 Entrega' : '🏪 Balcão';
+
+                card.innerHTML = `
+                    <div class="order-history-header">
+                        <div>
+                            <span class="order-history-num">Pedido #${ord.id || ord.timestamp}</span>
+                            <span class="order-history-date">${ord.date || ''} às ${ord.time || ''}</span>
+                        </div>
+                        <span class="status-badge" style="border: 1px solid ${statusColor}; color: ${statusColor}; background: rgba(255,255,255,0.04); font-size: 11px; font-weight: 700;">
+                            ${ord.status || 'Pendente'}
+                        </span>
+                    </div>
+
+                    <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
+                        <span>Tipo: <strong>${typeLabel}</strong></span>
+                        ${ord.paymentMethod ? `<span style="margin-left: 10px;">Pagamento: <strong>${ord.paymentMethod.toUpperCase()}</strong></span>` : ''}
+                    </div>
+
+                    <ul class="order-history-items-list">
+                        ${itemsHtml || '<li style="color: var(--text-muted);">Itens não discriminados</li>'}
+                    </ul>
+
+                    <div class="order-history-footer">
+                        <div>
+                            <span style="font-size: 11.5px; color: var(--text-muted);">Total:</span>
+                            <strong class="order-history-total">R$ ${(Number(ord.total) || 0).toFixed(2).replace('.', ',')}</strong>
+                        </div>
+                        <a href="https://api.whatsapp.com/send?phone=5554999999999&text=${encodeURIComponent('Olá! Gostaria de informações sobre o meu Pedido #' + (ord.id || ''))}" target="_blank" class="btn" style="background: rgba(37, 211, 102, 0.15); border: 1px solid rgba(37, 211, 102, 0.35); color: #25d366; font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: var(--radius-sm); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                            <span class="material-symbols-rounded" style="font-size: 14px;">chat</span>
+                            <span>Ajuda</span>
+                        </a>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+    } catch (e) {
+        if (loading) loading.classList.add('display-none');
+        if (empty) empty.classList.remove('display-none');
+    }
+}
+
+function closeCustomerOrdersModal() {
+    const modal = document.getElementById('customerOrdersModal');
+    if (modal) modal.classList.remove('active');
+}
+
+/* ==========================================================================
+   Minha Conta (Área do Cliente)
+   ========================================================================== */
+function openCustomerAccountModal() {
+    if (typeof CustomerAuth === 'undefined') return;
+    const cust = CustomerAuth.getSession();
+    if (!cust || !cust.normalizedPhone) {
+        openCustomerAuthModal();
+        return;
+    }
+
+    const modal = document.getElementById('customerAccountModal');
+    if (!modal) return;
+
+    const nameEl = document.getElementById('accountDisplayName');
+    const phoneEl = document.getElementById('accountDisplayPhone');
+    const letterEl = document.getElementById('accountAvatarLetter');
+    const inputEl = document.getElementById('accountNameInput');
+
+    if (nameEl) nameEl.innerText = cust.name || 'Cliente';
+    if (phoneEl) phoneEl.innerText = cust.phoneFormatted || CustomerAuth.formatPhone(cust.normalizedPhone);
+    if (letterEl) letterEl.innerText = (cust.name || 'C').charAt(0).toUpperCase();
+    if (inputEl) inputEl.value = cust.name || '';
+
+    modal.classList.add('active');
+}
+
+function closeCustomerAccountModal() {
+    const modal = document.getElementById('customerAccountModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function openCustomerOrdersModalFromAccount() {
+    closeCustomerAccountModal();
+    openCustomerOrdersModal();
+}
+
+async function saveCustomerAccountName() {
+    const input = document.getElementById('accountNameInput');
+    const newName = input ? input.value.trim() : '';
+    if (!newName || newName.length < 2) {
+        showToast('Informe um nome válido!', 'warning');
+        return;
+    }
+
+    const cust = CustomerAuth.getSession();
+    if (!cust || !cust.normalizedPhone) return;
+
+    await CustomerAuth.updateCustomerName(cust.normalizedPhone, newName);
+    initCustomerAuthSession();
+    const nameEl = document.getElementById('accountDisplayName');
+    const letterEl = document.getElementById('accountAvatarLetter');
+    if (nameEl) nameEl.innerText = newName;
+    if (letterEl) letterEl.innerText = newName.charAt(0).toUpperCase();
+
+    showToast('Nome atualizado com sucesso!', 'success');
 }
 
 
