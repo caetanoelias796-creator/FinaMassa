@@ -1,6 +1,6 @@
-﻿# 🚀 Guia de Publicação na Locaweb — Roloff Lanches
+# 🚀 Guia de Publicação na Locaweb — Fina Massa Pizzaria
 
-Este pacote contém todos os arquivos e configurações necessárias para rodar o sistema **Roloff Lanches** na hospedagem da **Locaweb** com máxima performance, segurança e compatibilidade com PWA.
+Este pacote contém todos os arquivos e configurações necessárias para rodar o sistema **Fina Massa Pizzaria** na hospedagem da **Locaweb** com máxima performance, segurança e compatibilidade com PWA.
 
 ---
 
@@ -36,7 +36,7 @@ public_html/
 2. Vá em **Hospedagem de Sites** ➔ clique em **Gerenciador de Arquivos** (ou cPanel).
 3. Entre na pasta **`public_html`** (a pasta raiz onde o site deve ficar).
 4. Se houver um arquivo `index.html` padrão antigo da Locaweb ("Página em Construção"), você pode removê-lo.
-5. Clique no botão **Enviar Arquivo (Upload)** no menu superior e envie o arquivo **`Roloff_Lanches_Deploy_Locaweb.zip`**.
+5. Clique no botão **Enviar Arquivo (Upload)** no menu superior e envie o arquivo **`Fina_Massa_Deploy_Locaweb.zip`**.
 6. Após a conclusão do upload, clique com o botão direito no arquivo `.zip` e selecione **Extrair / Descompactar (Extract)** diretamente em `public_html`.
 7. Pronto! Você já pode deletar o arquivo `.zip` para economizar espaço em disco.
 
@@ -46,7 +46,7 @@ public_html/
 
 1. Conecte ao seu servidor Locaweb usando seus dados de FTP (Host, Usuário e Senha).
 2. Abra a pasta remota **`public_html`**.
-3. No seu computador, extraia o arquivo **`Roloff_Lanches_Deploy_Locaweb.zip`**.
+3. No seu computador, extraia o arquivo **`Fina_Massa_Deploy_Locaweb.zip`**.
 4. Selecione todos os arquivos e pastas extraídos e arraste para dentro de **`public_html`**.
 5. Aguarde a transferência de todos os arquivos.
 
@@ -75,5 +75,5 @@ Para que o PWA (instalação no celular) e o Firebase funcionem com segurança:
 
 ## 💾 Banco de Dados & Firebase
 
-- O sistema já vem conectado ao Firebase da Roloff Lanches.
+- O sistema já vem conectado ao Firebase da Fina Massa Pizzaria.
 - Caso deseje restaurar ou atualizar o cardápio padrão, acesse o **Painel Administrativo → Configurações → Backup & Exportação** e faça a importação do arquivo `dados/menu.json`.

@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    TrackingService.js - Módulo Centralizado de Tracking para Fina Massa Pizzaria
    Suporta Meta Pixel, Google Tag Manager (GTM) e Google Analytics 4 (GA4)
    ========================================================================== */
@@ -59,12 +59,10 @@
             var category = 'Pizzas';
             if (item.category === 'bebidas') {
                 category = 'Bebidas';
-            } else if (item.category === 'porcoes') {
-                category = 'Porções';
-            } else if (item.category === 'sobremesas') {
-                category = 'Sobremesas';
-            } else if (item.category === 'pizzas_salgadas' || item.category === 'pizzas_doces') {
-                category = 'Lanches';
+            } else if (item.category === 'calzones') {
+                category = 'Calzones';
+            } else if (item.category === 'pizzas_tradicionais' || item.category === 'pizzas_especiais' || item.category === 'pizzas_salgadas' || item.category === 'pizzas_doces') {
+                category = 'Pizzas';
             } else if (item.category) {
                 category = String(item.category);
             }

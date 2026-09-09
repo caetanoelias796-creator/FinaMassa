@@ -13,6 +13,7 @@ const STATIC_ASSETS = [
     './branding-theme.css',
     './index.css',
     './PizzaEngine.js',
+    './CustomerAuth.js',
     './app.js',
     './firebase-config.js',
     './TrackingService.js',
@@ -61,10 +62,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (
-                        (cacheName.startsWith(CACHE_PREFIX) || cacheName.startsWith('roloff_')) &&
-                        cacheName !== CACHE_NAME
-                    ) {
+                    if (cacheName !== CACHE_NAME) {
                         console.log('[SW] Removendo cache antigo:', cacheName);
                         return caches.delete(cacheName);
                     }

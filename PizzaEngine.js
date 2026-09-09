@@ -2,7 +2,7 @@
  * ============================================================================
  * PizzaEngine.js — Núcleo Central e Universal do Motor de Pizzas
  * ============================================================================
- * Base reutilizável para Fina Massa, Mundo da Pizza e futuros restaurantes.
+ * Motor oficial de precificação, frações e montagem de pizzas da Fina Massa Pizzaria.
  * 
  * RESPONSABILIDADE EXCLUSIVA:
  * - Regras de negócio puras (tamanhos, frações, sabores, bordas, adicionais).

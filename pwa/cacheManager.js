@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Cache Manager - Fina Massa Pizzaria PWA
    ========================================================================== */
 
@@ -25,7 +25,7 @@ window.PWACacheManager = {
       const keys = await caches.keys();
       await Promise.all(
         keys.map((key) => {
-          if ((key.startsWith('roloff-') || key.startsWith('roloff_')) && key !== currentCacheName) {
+          if (key !== currentCacheName) {
             console.log('[CacheManager] Removendo cache obsoleto:', key);
             return caches.delete(key);
           }

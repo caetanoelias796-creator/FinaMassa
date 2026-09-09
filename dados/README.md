@@ -1,13 +1,13 @@
-# Pasta de Dados — Roloff Lanches
+# Pasta de Dados — Fina Massa Pizzaria
 
-Esta pasta reúne a estrutura de dados, configurações, esquema de cardápio e regras do banco de dados do projeto **Roloff Lanches**.
+Esta pasta reúne a estrutura de dados, configurações, esquema de cardápio e regras do banco de dados do projeto **Fina Massa Pizzaria**.
 
 ---
 
 ## Conteúdo da Pasta `dados/`
 
 1. **`menu.json`**:
-   - Cardápio base de lanches, hambúrgueres artesanais, porções, bebidas, sobremesas e adicionais.
+   - Cardápio base de pizzas tradicionais, pizzas especiais, calzones, bebidas e adicionais.
 
 2. **`configuracoes.json`**:
    - Modelo de exportação/importação das configurações da loja (WhatsApp, taxas de entrega e chaves de rastreamento limpas).

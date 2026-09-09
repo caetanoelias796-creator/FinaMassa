@@ -1,8 +1,8 @@
-﻿================================================================================
-          ROLOFF LANCHES - GUIA PASSO A PASSO DE PUBLICACAO NA LOCAWEB
+================================================================================
+          FINA MASSA PIZZARIA - GUIA PASSO A PASSO DE PUBLICACAO NA LOCAWEB
 ================================================================================
 
-Este pacote contem todos os arquivos do sistema Roloff Lanches prontos e 
+Este pacote contem todos os arquivos do sistema Fina Massa Pizzaria prontos e 
 otimizados para rodar na hospedagem da Locaweb (com PWA, SSL e cache ativados).
 
 --------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ Passo 3:
 
 Passo 4:
 - Clique no botao "Enviar" / "Upload" no topo do Gerenciador de Arquivos.
-- Selecione o arquivo: Roloff_Lanches_Deploy_Locaweb.zip
+- Selecione o arquivo: Fina_Massa_Deploy_Locaweb.zip
 
 Passo 5:
 - Quando o upload terminar, clique com o botao direito no arquivo zip dentro da pasta 

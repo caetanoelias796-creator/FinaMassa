@@ -3339,9 +3339,9 @@ function openAddProductModal(defaultCat = null) {
     document.getElementById('productEditOldCategory').value = '';
     document.getElementById('productForm').reset();
     
-    populateCategoryDropdown(defaultCat || (activeMenuCategory !== 'todos' && !activeMenuCategory.startsWith('tab_') ? activeMenuCategory : 'lanches'));
+    populateCategoryDropdown(defaultCat || (activeMenuCategory !== 'todos' && !activeMenuCategory.startsWith('tab_') ? activeMenuCategory : 'pizzas_tradicionais'));
     
-    const cat = document.getElementById('productCategorySelect').value || 'pizzas_salgadas';
+    const cat = document.getElementById('productCategorySelect').value || 'pizzas_tradicionais';
     const defImg = getDefaultProductImageForCategory(cat);
     document.getElementById('productImage').value = defImg;
     updateProductImagePreview(defImg);
@@ -3662,15 +3662,17 @@ function deleteAdicional(key) {
 
 function getDefaultProductImageForCategory(catKey) {
     const defaults = {
+        'pizzas_tradicionais': '../assets/pizza_hero.png',
+        'pizzas_especiais': '../assets/pizzas/especiais/pizza_especial.jpg',
         'pizzas_salgadas': '../assets/pizza_hero.png',
-        'pizzas_doces': '../assets/gourmet_doce_morango.png',
-        'calzones': '../assets/pizza_media.jpg',
-        'bebidas': '../assets/gourmet_bebida.png'
+        'pizzas_doces': '../assets/pizzas/doces/pizza_doce_nutella.jpg',
+        'calzones': '../assets/calzones/calzone_artesanal.jpg',
+        'bebidas': '../assets/bebidas/coca_2l.jpg'
     };
     return defaults[catKey] || '../assets/pizza_hero.png';
 }
 
-function resolveProductImage(item, categoryKey = 'lanches') {
+function resolveProductImage(item, categoryKey = 'pizzas_tradicionais') {
     if (!item) return getDefaultProductImageForCategory(categoryKey);
     let img = item.image || item.imagem || '';
     if (img && typeof img === 'string' && img.trim() !== '') {
@@ -3680,16 +3682,16 @@ function resolveProductImage(item, categoryKey = 'lanches') {
         }
         return img;
     }
-    const cat = categoryKey || item.category || 'pizzas_salgadas';
+    const cat = categoryKey || item.category || 'pizzas_tradicionais';
     return getDefaultProductImageForCategory(cat);
 }
 
-function populateCategoryDropdown(selectedCat = 'pizzas_salgadas') {
+function populateCategoryDropdown(selectedCat = 'pizzas_tradicionais') {
     const select = document.getElementById('productCategorySelect');
     if (!select) return;
     
     select.innerHTML = '';
-    const defaultCats = ['pizzas_salgadas', 'pizzas_doces', 'calzones', 'bebidas'];
+    const defaultCats = ['pizzas_tradicionais', 'pizzas_especiais', 'calzones', 'bebidas', 'pizzas_salgadas', 'pizzas_doces'];
     const menuItems = menuData?.menu_items || {};
     const catKeys = Array.from(new Set([...defaultCats, ...Object.keys(menuItems)]));
     

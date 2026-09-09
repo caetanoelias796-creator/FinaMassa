@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Install Manager - Fina Massa Pizzaria PWA
    ========================================================================== */
 
@@ -144,11 +144,13 @@ window.PWAInstallManager = {
           max-width: 400px;
           width: 100%;
           padding: 28px 24px;
-          box-shadow: 0 20px 40px rgba(166, 90, 46, 0.25);
+          background-color: #181B22;
+          border: 1px solid rgba(245, 166, 35, 0.25);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
           text-align: center;
           font-family: 'Outfit', sans-serif;
           animation: pwaPopUp 0.3s ease-out forwards;
-          color: #2D2D2D;
+          color: #ffffff;
           position: relative;
         ">
           <img src="assets/logo.png" alt="Fina Massa Pizzaria Logo" style="
@@ -157,49 +159,49 @@ window.PWAInstallManager = {
             border-radius: 50%;
             object-fit: contain;
             margin: 0 auto 16px auto;
-            border: 2px solid #D89B1D;
-            box-shadow: 0 0 20px rgba(216, 155, 29, 0.4);
+            border: 2px solid #F5A623;
+            box-shadow: 0 0 20px rgba(245, 166, 35, 0.4);
           ">
 
           <h3 style="
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 22px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
             font-weight: 700;
-            color: #2D2D2D;
+            color: #F5A623;
             margin: 0 0 10px 0;
-          ">📱 Instale o aplicativo do Fina Massa Pizzaria</h3>
+          ">📱 Instale o aplicativo da Fina Massa Pizzaria</h3>
 
           <ul style="
             text-align: left;
             margin: 16px 0 24px 0;
             padding: 0 0 0 20px;
-            color: #6E6458;
+            color: #C7CAD1;
             font-size: 14px;
             line-height: 1.8;
           ">
-            <li>🍔 Peça lanches e porções mais rápido.</li>
-            <li>🎁 Receba promoções exclusivas.</li>
-            <li>⚡ Tenha uma experiência igual à de um aplicativo nativo.</li>
+            <li>🍕 Peça suas pizzas favoritas e calzones mais rápido.</li>
+            <li>🎁 Receba promoções e novidades exclusivas.</li>
+            <li>⚡ Tenha uma experiência ágil como app nativo no celular.</li>
           </ul>
 
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <button id="pwa-modal-btn-install" style="
-              background: linear-gradient(135deg, #D89B1D 0%, #A65A2E 100%);
-              color: #FFFBF4;
+              background: linear-gradient(135deg, #F5A623 0%, #D48806 100%);
+              color: #0B0C0E;
               border: none;
               padding: 14px;
               border-radius: 12px;
               font-size: 15px;
               font-weight: 700;
               cursor: pointer;
-              box-shadow: 0 4px 15px rgba(216, 155, 29, 0.4);
+              box-shadow: 0 4px 15px rgba(245, 166, 35, 0.35);
               transition: transform 0.15s;
             ">Instalar Agora</button>
 
             <button id="pwa-modal-btn-continue" style="
               background: transparent;
-              color: #6E6458;
-              border: 1px solid #E7DCCB;
+              color: #A0A5B1;
+              border: 1px solid rgba(255, 255, 255, 0.15);
               padding: 12px;
               border-radius: 12px;
               font-size: 14px;

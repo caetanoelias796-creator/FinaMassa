@@ -212,7 +212,7 @@ function getActiveTableComanda(tableIdentifier, specificComandaId = null) {
     return comandas[0];
 }
 
-// Fallback Menu Items (Lanches, Bebidas, etc.)
+// Fallback Menu Items (Pizzas, Calzones, Bebidas, etc.)
 // Itens padrão neutros - Fina Massa Pizzaria
 let DEFAULT_MENU_ITEMS = {};
 
@@ -519,7 +519,7 @@ function parseMenuItems(menuItemsObj, pizzaPricesObj) {
         }
     });
 
-    // Se a lista estiver vazia por qualquer motivo, carregar itens de lanches padrão
+    // Se a lista estiver vazia por qualquer motivo, carregar itens padrão da Fina Massa
     if (list.length === 0) {
         Object.keys(DEFAULT_MENU_ITEMS).forEach(cat => {
             DEFAULT_MENU_ITEMS[cat].forEach(item => {
