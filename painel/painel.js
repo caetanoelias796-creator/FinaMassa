@@ -3098,10 +3098,15 @@ function mergeDefaultMenuItems(remoteMenu) {
     if (!merged.adicionais || typeof merged.adicionais !== 'object') {
         merged.adicionais = {};
     }
+    if (!merged.sharedOptionGroups || typeof merged.sharedOptionGroups !== 'object') {
+        merged.sharedOptionGroups = {};
+    }
+    if (!merged.borders || typeof merged.borders !== 'object') {
+        merged.borders = {};
+    }
     if (!merged.settings || typeof merged.settings !== 'object') {
         merged.settings = { ...DEFAULT_MENU_DATA.settings };
     }
-    // Não reinjeta hambúrgueres nem sobrescreve o Firebase automaticamente
     return merged;
 }
 
@@ -3109,15 +3114,41 @@ function initMenuSync() {
     menuData = DEFAULT_MENU_DATA;
     renderMenuManager();
 
+    // Baseline local
+    fetch('../menu.json', { cache: 'no-cache' })
+        .then(r => r.json())
+        .then(localData => {
+            if (localData) {
+                const currentRemote = menuData && menuData !== DEFAULT_MENU_DATA ? menuData : {};
+                menuData = {
+                    ...mergeDefaultMenuItems(localData),
+                    ...currentRemote,
+                    menu_items: { ...(localData.menu_items || {}), ...(currentRemote.menu_items || {}) },
+                    sharedOptionGroups: { ...(localData.sharedOptionGroups || {}), ...(currentRemote.sharedOptionGroups || {}) },
+                    borders: { ...(localData.borders || {}), ...(currentRemote.borders || {}) },
+                    settings: { ...(localData.settings || {}), ...(currentRemote.settings || {}) }
+                };
+                renderMenuManager();
+            }
+        })
+        .catch(err => console.warn("Aviso ao carregar baseline do menu.json:", err));
+
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
         setupTrackingSettingsRealtime();
 
         const menuRef = firebase.database().ref('menu');
         menuRef.on('value', (snapshot) => {
             const data = snapshot.val();
-            if (data && typeof data === 'object' && data.menu_items) {
+            if (data && typeof data === 'object') {
                 const confirmedTracking = menuData?.settings?.tracking;
-                menuData = mergeDefaultMenuItems(data);
+                menuData = {
+                    ...(menuData || {}),
+                    ...data,
+                    menu_items: { ...(menuData?.menu_items || {}), ...(data.menu_items || {}) },
+                    sharedOptionGroups: { ...(menuData?.sharedOptionGroups || {}), ...(data.sharedOptionGroups || {}) },
+                    borders: { ...(menuData?.borders || {}), ...(data.borders || {}) },
+                    settings: { ...(menuData?.settings || {}), ...(data.settings || {}) }
+                };
                 if (confirmedTracking && typeof confirmedTracking === 'object') {
                     menuData.settings = menuData.settings || {};
                     menuData.settings.tracking = {
@@ -3127,28 +3158,9 @@ function initMenuSync() {
                 }
                 renderMenuManager();
             } else {
-                console.log("[Fina Massa Painel] Cardápio no Firebase aguardando sincronização de produtos. Carregando ../menu.json como fallback...");
-                fetch('../menu.json', { cache: 'no-cache' })
-                    .then(r => r.json())
-                    .then(localData => {
-                        menuData = mergeDefaultMenuItems(localData || DEFAULT_MENU_DATA);
-                        renderMenuManager();
-                    })
-                    .catch(() => renderMenuManager());
+                renderMenuManager();
             }
         });
-    } else {
-        fetch('../menu.json', { cache: 'no-cache' })
-            .then(res => res.json())
-            .then(data => {
-                menuData = mergeDefaultMenuItems(data || DEFAULT_MENU_DATA);
-                renderMenuManager();
-            })
-            .catch(err => {
-                console.error("Erro ao buscar cardápio local, usando DEFAULT_MENU_DATA:", err);
-                menuData = DEFAULT_MENU_DATA;
-                renderMenuManager();
-            });
     }
 }
 
@@ -3168,45 +3180,256 @@ function renderMenuManager() {
 
 function getCategoryDisplayName(catKey) {
     const names = {
-        'pizzas_tradicionais': 'Pizzas Tradicionais',
-        'pizzas_especiais': 'Pizzas Especiais',
-        'pizzas_salgadas': 'Pizzas Salgadas',
-        'pizzas_doces': 'Pizzas Doces',
+        'todos': 'Todos os Produtos',
+        'pizzas_tradicionais': 'Pizzas Tradicionais (Tamanhos)',
+        'sabores_tradicionais': 'Sabores Tradicionais',
+        'pizzas_especiais': 'Pizzas Especiais (Tamanhos)',
+        'sabores_especiais': 'Sabores Especiais',
         'calzones': 'Calzones',
-        'bebidas': 'Bebidas'
+        'bebidas': 'Bebidas',
+        'bordas': 'Bordas Recheadas',
+        'pizzas_salgadas': 'Pizzas Salgadas',
+        'pizzas_doces': 'Pizzas Doces'
     };
-    return names[catKey] || catKey.charAt(0).toUpperCase() + catKey.slice(1);
+    return names[catKey] || catKey.charAt(0).toUpperCase() + catKey.slice(1).replace(/_/g, ' ');
+}
+
+function getCategoryEmoji(catKey) {
+    const emojis = {
+        'todos': '📋',
+        'pizzas_tradicionais': '🍕',
+        'sabores_tradicionais': '🍕',
+        'pizzas_especiais': '⭐',
+        'sabores_especiais': '⭐',
+        'calzones': '🥟',
+        'bebidas': '🥤',
+        'bordas': '🧀',
+        'pizzas_salgadas': '🍕',
+        'pizzas_doces': '🍫'
+    };
+    return emojis[catKey] || '🍽️';
+}
+
+function getAllCategoryKeysWithItems() {
+    const list = [];
+    if (!menuData) return list;
+
+    // 1. Pizzas Tradicionais (Tamanhos)
+    const ptItems = (menuData.menu_items?.pizzas_tradicionais || []).map(it => ({
+        ...it,
+        categoryKey: 'pizzas_tradicionais'
+    }));
+    if (ptItems.length > 0 || menuData.menu_items?.pizzas_tradicionais) {
+        list.push({
+            key: 'pizzas_tradicionais',
+            name: 'Pizzas Tradicionais (Tamanhos)',
+            icon: 'local_pizza',
+            emoji: '🍕',
+            type: 'menu_items',
+            items: ptItems
+        });
+    }
+
+    // 2. Sabores Tradicionais
+    const sabTradList = menuData.sharedOptionGroups?.saboresTradicionais || [];
+    const sabTrad = sabTradList.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.ingredients || s.description || 'Ingredientes tradicionais da receita Fina Massa.',
+        image: s.image || 'assets/pizzas/tradicionais/calabresa.webp',
+        price: 0,
+        priceDisplay: 'Incluso no tamanho',
+        badge: 'Tradicional',
+        categoryKey: 'sabores_tradicionais',
+        available: s.available !== false,
+        raw: s
+    }));
+    if (sabTrad.length > 0) {
+        list.push({
+            key: 'sabores_tradicionais',
+            name: 'Sabores Tradicionais',
+            icon: 'local_pizza',
+            emoji: '🍕',
+            type: 'sabores_trad',
+            items: sabTrad
+        });
+    }
+
+    // 3. Pizzas Especiais (Tamanhos)
+    const peItems = (menuData.menu_items?.pizzas_especiais || []).map(it => ({
+        ...it,
+        categoryKey: 'pizzas_especiais'
+    }));
+    if (peItems.length > 0 || menuData.menu_items?.pizzas_especiais) {
+        list.push({
+            key: 'pizzas_especiais',
+            name: 'Pizzas Especiais (Tamanhos)',
+            icon: 'star',
+            emoji: '⭐',
+            type: 'menu_items',
+            items: peItems
+        });
+    }
+
+    // 4. Sabores Especiais
+    const sabEspList = menuData.sharedOptionGroups?.saboresEspeciais || [];
+    const sabEsp = sabEspList.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.ingredients || s.description || 'Ingredientes nobres e selecionados Fina Massa.',
+        image: s.image || 'assets/pizzas/tradicionais/calabresa.webp',
+        price: 0,
+        priceDisplay: 'Especial',
+        badge: 'Especial',
+        categoryKey: 'sabores_especiais',
+        available: s.available !== false,
+        raw: s
+    }));
+    if (sabEsp.length > 0) {
+        list.push({
+            key: 'sabores_especiais',
+            name: 'Sabores Especiais',
+            icon: 'star',
+            emoji: '⭐',
+            type: 'sabores_esp',
+            items: sabEsp
+        });
+    }
+
+    // 5. Calzones
+    const calzoneItems = (menuData.menu_items?.calzones || []).map(it => ({
+        ...it,
+        categoryKey: 'calzones'
+    }));
+    if (calzoneItems.length > 0 || menuData.menu_items?.calzones) {
+        list.push({
+            key: 'calzones',
+            name: 'Calzones',
+            icon: 'bakery_dining',
+            emoji: '🥟',
+            type: 'menu_items',
+            items: calzoneItems
+        });
+    }
+
+    // 6. Bebidas
+    const bebidaItems = (menuData.menu_items?.bebidas || []).map(it => ({
+        ...it,
+        categoryKey: 'bebidas'
+    }));
+    if (bebidaItems.length > 0 || menuData.menu_items?.bebidas) {
+        list.push({
+            key: 'bebidas',
+            name: 'Bebidas',
+            icon: 'local_bar',
+            emoji: '🥤',
+            type: 'menu_items',
+            items: bebidaItems
+        });
+    }
+
+    // 7. Bordas Recheadas
+    let borderItems = [];
+    if (menuData.borders && typeof menuData.borders === 'object' && Object.keys(menuData.borders).length > 0) {
+        borderItems = Object.entries(menuData.borders).map(([bId, bVal]) => ({
+            id: bId,
+            name: bVal.name || bId,
+            description: 'Borda artesanal personalizada para pizzas Fina Massa.',
+            price: Number(bVal.price || 0),
+            image: 'assets/pizza_hero.png',
+            categoryKey: 'bordas',
+            badge: Number(bVal.price || 0) > 0 ? `+ R$ ${Number(bVal.price).toFixed(2).replace('.', ',')}` : 'Tradicional',
+            available: bVal.available !== false,
+            raw: bVal
+        }));
+    } else if (menuData.sharedOptionGroups?.crust?.options) {
+        borderItems = (menuData.sharedOptionGroups.crust.options || []).map(b => ({
+            id: b.id,
+            name: b.name,
+            description: 'Borda artesanal personalizada para pizzas Fina Massa.',
+            price: Number(b.price || 0),
+            image: 'assets/pizza_hero.png',
+            categoryKey: 'bordas',
+            badge: Number(b.price || 0) > 0 ? `+ R$ ${Number(b.price).toFixed(2).replace('.', ',')}` : 'Tradicional',
+            available: b.available !== false,
+            raw: b
+        }));
+    }
+    if (borderItems.length > 0) {
+        list.push({
+            key: 'bordas',
+            name: 'Bordas Recheadas',
+            icon: 'lunch_dining',
+            emoji: '🧀',
+            type: 'borders',
+            items: borderItems
+        });
+    }
+
+    // 8. Categorias Adicionais em menu_items (como salgadas, doces, etc)
+    if (menuData.menu_items) {
+        const standardKeys = ['pizzas_tradicionais', 'pizzas_especiais', 'calzones', 'bebidas'];
+        Object.keys(menuData.menu_items).forEach(otherKey => {
+            if (!standardKeys.includes(otherKey)) {
+                const otherItems = (menuData.menu_items[otherKey] || []).map(it => ({
+                    ...it,
+                    categoryKey: otherKey
+                }));
+                if (otherItems.length > 0) {
+                    list.push({
+                        key: otherKey,
+                        name: getCategoryDisplayName(otherKey),
+                        icon: 'category',
+                        emoji: getCategoryEmoji(otherKey),
+                        type: 'menu_items',
+                        items: otherItems
+                    });
+                }
+            }
+        });
+    }
+
+    return list;
 }
 
 function renderCategoryFilterTabs() {
-    const nav = document.getElementById('menuCategoriesNav');
+    const nav = document.getElementById('menuFilterTabs') || document.getElementById('menuCategoriesNav');
     if (!nav) return;
     
     nav.innerHTML = '';
     
-    const menuItems = menuData.menu_items || {};
-    const categories = Object.keys(menuItems);
+    const categoriesWithItems = getAllCategoryKeysWithItems();
+    const totalProducts = categoriesWithItems.reduce((acc, cat) => acc + (cat.items?.length || 0), 0);
     
-    categories.forEach(catKey => {
-        const count = Array.isArray(menuItems[catKey]) ? menuItems[catKey].length : 0;
+    // Tab "Todos"
+    const btnTodos = document.createElement('button');
+    btnTodos.className = `filter-tab ${activeMenuCategory === 'todos' ? 'active' : ''}`;
+    btnTodos.innerHTML = `📋 Todos (${totalProducts})`;
+    btnTodos.onclick = () => setMenuCategoryFilter('todos');
+    nav.appendChild(btnTodos);
+    
+    // Category Tabs
+    categoriesWithItems.forEach(cat => {
+        const count = Array.isArray(cat.items) ? cat.items.length : 0;
         const btnCat = document.createElement('button');
-        btnCat.className = `filter-tab ${activeMenuCategory === catKey ? 'active' : ''}`;
-        btnCat.innerText = `${getCategoryDisplayName(catKey)} (${count})`;
-        btnCat.onclick = () => setMenuCategoryFilter(catKey);
+        btnCat.className = `filter-tab ${activeMenuCategory === cat.key ? 'active' : ''}`;
+        btnCat.innerHTML = `${cat.emoji} ${cat.name} (${count})`;
+        btnCat.onclick = () => setMenuCategoryFilter(cat.key);
         nav.appendChild(btnCat);
     });
     
     // Tab "Adicionais"
+    const adsCount = menuData?.adicionais ? Object.keys(menuData.adicionais).length : 0;
     const btnAds = document.createElement('button');
     btnAds.className = `filter-tab ${activeMenuCategory === 'tab_adicionais' ? 'active' : ''}`;
-    btnAds.innerText = 'Adicionais / Opcionais';
+    btnAds.innerHTML = `➕ Adicionais / Opcionais (${adsCount})`;
     btnAds.onclick = () => setMenuCategoryFilter('tab_adicionais');
     nav.appendChild(btnAds);
     
     // Tab "Pop-up Promoções"
     const btnPromo = document.createElement('button');
     btnPromo.className = `filter-tab ${activeMenuCategory === 'tab_promo' ? 'active' : ''}`;
-    btnPromo.innerText = 'Pop-up Promoções';
+    btnPromo.innerHTML = `🎁 Pop-up Promoções`;
     btnPromo.onclick = () => setMenuCategoryFilter('tab_promo');
     nav.appendChild(btnPromo);
 }
@@ -3243,90 +3466,159 @@ function renderProductsList() {
     if (!grid) return;
     
     grid.innerHTML = '';
-    if (!menuData || !menuData.menu_items) return;
+    if (!menuData) return;
     
     const searchVal = (document.getElementById('searchMenuProduct')?.value || '').toLowerCase().trim();
+    const categoriesWithItems = getAllCategoryKeysWithItems();
     
-    let allItems = [];
-    const menuItems = menuData.menu_items || {};
+    let renderedCount = 0;
     
-    Object.keys(menuItems).forEach(catKey => {
-        if (activeMenuCategory !== 'todos' && activeMenuCategory !== catKey) return;
-        
-        const items = menuItems[catKey] || [];
-        items.forEach(it => {
-            allItems.push({ ...it, categoryKey: catKey });
-        });
-    });
-    
-    if (searchVal) {
-        allItems = allItems.filter(it => 
-            (it.name && it.name.toLowerCase().includes(searchVal)) ||
-            (it.description && it.description.toLowerCase().includes(searchVal))
-        );
-    }
-    
-    if (allItems.length === 0) {
-        grid.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; background: var(--bg-card); border: 1.5px dashed var(--border-color); border-radius: var(--radius-lg); color: var(--text-muted);">
-                <span class="material-symbols-rounded" style="font-size: 40px; color: var(--accent-gold); margin-bottom: 8px;">search_off</span>
-                <h4 style="color: var(--text-main); font-size: 16px; margin-bottom: 4px;">Nenhum produto encontrado</h4>
-                <p style="font-size: 13px;">Tente buscar com outro termo ou adicione um novo produto nesta categoria.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    allItems.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'flavor-card';
-        if (item.available === false) {
-            card.style.opacity = '0.65';
+    categoriesWithItems.forEach(cat => {
+        // Se uma categoria específica estiver selecionada, pula as outras
+        if (activeMenuCategory !== 'todos' && activeMenuCategory !== cat.key) {
+            return;
         }
         
-        const isChecked = item.available !== false ? 'checked' : '';
-        const badgeHTML = item.badge ? `<span class="flavor-badge-label">${item.badge}</span>` : '';
-        const imgPath = resolveProductImage(item, item.categoryKey);
+        let filteredItems = cat.items || [];
+        if (searchVal) {
+            filteredItems = filteredItems.filter(it => 
+                (it.name && it.name.toLowerCase().includes(searchVal)) ||
+                (it.description && it.description.toLowerCase().includes(searchVal)) ||
+                (it.ingredients && it.ingredients.toLowerCase().includes(searchVal))
+            );
+        }
         
-        card.innerHTML = `
-            <div class="flavor-card-header">
-                <div style="display: flex; gap: 12px; align-items: center; flex: 1;">
-                    <img src="${imgPath}" alt="${item.name}" style="width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover; border: 1px solid var(--border-color); background: #fff;" onerror="this.onerror=null; this.src='../assets/pizza_hero.png';">
-                    <div class="flavor-card-info" style="flex: 1;">
-                        <h4 style="margin: 0; color: var(--text-main); font-size: 15px; font-weight: 700;">${item.name}</h4>
-                        <span class="category-tag salgada">
-                            ${getCategoryDisplayName(item.categoryKey)}
-                        </span>
-                    </div>
+        // Se busca ativa e sem itens na categoria, não exibe o bloco vazio
+        if (filteredItems.length === 0 && searchVal) {
+            return;
+        }
+        
+        renderedCount += filteredItems.length;
+        
+        // Criação da Seção da Categoria
+        const sectionEl = document.createElement('div');
+        sectionEl.className = 'menu-category-section';
+        sectionEl.setAttribute('data-category', cat.key);
+        
+        // Cabeçalho da Categoria
+        const headerEl = document.createElement('div');
+        headerEl.className = 'menu-category-section-header';
+        
+        const isFlavorOrBorder = cat.key === 'sabores_tradicionais' || cat.key === 'sabores_especiais' || cat.key === 'bordas';
+        const addBtnText = isFlavorOrBorder 
+            ? (cat.key === 'bordas' ? 'Adicionar Borda' : 'Adicionar Sabor') 
+            : 'Adicionar Produto';
+            
+        headerEl.innerHTML = `
+            <div class="category-header-main">
+                <span class="category-header-emoji">${cat.emoji}</span>
+                <div>
+                    <h3 class="category-header-title">${cat.name}</h3>
+                    <span class="category-header-badge">${filteredItems.length} ${filteredItems.length === 1 ? 'item cadastrado' : 'itens cadastrados'}</span>
                 </div>
+            </div>
+            <button type="button" class="btn-category-add" onclick="openAddProductModal('${cat.key}')">
+                <span class="material-symbols-rounded" style="font-size: 18px;">add_circle</span>
+                <span>${addBtnText}</span>
+            </button>
+        `;
+        sectionEl.appendChild(headerEl);
+        
+        // Grid de Cards da Categoria
+        const cardsGrid = document.createElement('div');
+        cardsGrid.className = 'flavors-list-grid';
+        
+        if (filteredItems.length === 0) {
+            cardsGrid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 30px 20px; background: var(--bg-surface); border: 1.5px dashed var(--border-color); border-radius: var(--radius-md); color: var(--text-muted);">
+                    <p style="margin: 0; font-size: 13.5px;">Nenhum item cadastrado nesta categoria ainda.</p>
+                </div>
+            `;
+        } else {
+            filteredItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'flavor-card';
+                if (item.available === false) {
+                    card.style.opacity = '0.65';
+                }
                 
-                <label class="switch" title="${item.available !== false ? 'DisponÃ­vel no Site' : 'Pausado/IndisponÃ­vel'}">
-                    <input type="checkbox" ${isChecked} onchange="toggleProductAvailability('${item.id}', '${item.categoryKey}', this.checked)">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            
-            <p class="flavor-card-desc" style="margin: 8px 0; flex: 1; font-size: 12.5px; color: var(--text-body); line-height: 1.4;">${item.description || 'Sem descriÃ§Ã£o cadastrada.'}</p>
-            
-            <div class="flavor-card-meta" style="display: flex; justify-content: space-between; align-items: center; padding-top: 6px;">
-                <span class="flavor-price-tier" style="font-weight: 800; color: var(--primary); font-size: 16px;">
-                    R$ ${Number(item.price || 0).toFixed(2).replace('.', ',')}
-                </span>
-                ${badgeHTML}
-            </div>
-            
-            <div class="flavor-card-actions" style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 8px;">
-                <button class="btn-icon-action" onclick="openEditProductModal('${item.id}', '${item.categoryKey}')" title="Editar Produto">
-                    <span class="material-symbols-rounded" style="font-size: 18px;">edit</span>
-                </button>
-                <button class="btn-icon-action delete" onclick="deleteProduct('${item.id}', '${item.categoryKey}')" title="Excluir Produto">
-                    <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
+                const isChecked = item.available !== false ? 'checked' : '';
+                const badgeHTML = item.badge ? `<span class="flavor-badge-label">${item.badge}</span>` : '';
+                const imgPath = resolveProductImage(item, cat.key);
+                
+                // Formatação do Preço
+                let priceHTML = '';
+                if (item.priceDisplay) {
+                    priceHTML = `<span class="flavor-price-tier" style="font-weight: 800; color: var(--accent-gold); font-size: 15px;">${item.priceDisplay}</span>`;
+                } else if (item.basePrice !== undefined) {
+                    priceHTML = `<span class="flavor-price-tier" style="font-weight: 800; color: var(--primary); font-size: 15px;">A partir de R$ ${Number(item.basePrice).toFixed(2).replace('.', ',')}</span>`;
+                } else if (item.price !== undefined) {
+                    const priceVal = Number(item.price || 0);
+                    if (priceVal === 0 && (cat.key === 'sabores_tradicionais' || cat.key === 'sabores_especiais')) {
+                        priceHTML = `<span class="flavor-price-tier" style="font-weight: 700; color: var(--accent-gold); font-size: 14px;">Incluso no tamanho</span>`;
+                    } else {
+                        priceHTML = `<span class="flavor-price-tier" style="font-weight: 800; color: var(--primary); font-size: 15px;">R$ ${priceVal.toFixed(2).replace('.', ',')}</span>`;
+                    }
+                }
+                
+                const tagClass = (cat.key.includes('especial') ? 'destaque' : (cat.key === 'bebidas' ? 'bebidas' : 'salgada'));
+                const descText = item.ingredients || item.description || 'Sem descrição cadastrada.';
+                
+                card.innerHTML = `
+                    <div class="flavor-card-header">
+                        <div style="display: flex; gap: 12px; align-items: center; flex: 1; min-width: 0;">
+                            <img src="${imgPath}" alt="${item.name}" style="width: 52px; height: 52px; border-radius: var(--radius-sm); object-fit: cover; border: 1px solid var(--border-color); background: #fff; flex-shrink: 0;" onerror="this.onerror=null; this.src='../assets/pizza_hero.png';">
+                            <div class="flavor-card-info" style="flex: 1; min-width: 0;">
+                                <h4 style="margin: 0; color: var(--text-main); font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${item.name}">${item.name}</h4>
+                                <span class="category-tag ${tagClass}">
+                                    ${cat.name}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <label class="switch" title="${item.available !== false ? 'Disponível no Cardápio' : 'Pausado/Indisponível'}">
+                            <input type="checkbox" ${isChecked} onchange="toggleProductAvailability('${item.id}', '${cat.key}', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <p class="flavor-card-desc" style="margin: 10px 0; flex: 1; font-size: 12.5px; color: var(--text-body); line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${descText}">${descText}</p>
+                    
+                    <div class="flavor-card-meta" style="display: flex; justify-content: space-between; align-items: center; padding-top: 6px;">
+                        ${priceHTML}
+                        ${badgeHTML}
+                    </div>
+                    
+                    <div class="flavor-card-actions" style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 8px;">
+                        <button class="btn-icon-action" onclick="openEditProductModal('${item.id}', '${cat.key}')" title="Editar">
+                            <span class="material-symbols-rounded" style="font-size: 18px;">edit</span>
+                        </button>
+                        <button class="btn-icon-action delete" onclick="deleteProduct('${item.id}', '${cat.key}')" title="Excluir">
+                            <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
+                        </button>
+                    </div>
+                `;
+                
+                cardsGrid.appendChild(card);
+            });
+        }
+        
+        sectionEl.appendChild(cardsGrid);
+        grid.appendChild(sectionEl);
+    });
+    
+    if (renderedCount === 0) {
+        grid.innerHTML = `
+            <div style="text-align: center; padding: 48px 20px; background: var(--bg-card); border: 1.5px dashed var(--border-color); border-radius: var(--radius-lg); color: var(--text-muted); width: 100%;">
+                <span class="material-symbols-rounded" style="font-size: 44px; color: var(--accent-gold); margin-bottom: 8px;">search_off</span>
+                <h4 style="color: var(--text-main); font-size: 17px; margin-bottom: 6px;">Nenhum produto encontrado</h4>
+                <p style="font-size: 13.5px; margin-bottom: 14px;">Tente pesquisar com outro termo ou selecione outra categoria nas abas acima.</p>
+                <button type="button" class="btn-status-next" onclick="setMenuCategoryFilter('todos'); document.getElementById('searchMenuProduct').value = ''; renderProductsList();" style="border-radius: var(--radius-sm); border: none; padding: 9px 20px; cursor: pointer; font-weight: 600;">
+                    Ver Todos os Produtos
                 </button>
             </div>
         `;
-        
-        grid.appendChild(card);
-    });
+    }
 }
 
 function filterProductsList() {
@@ -3339,9 +3631,18 @@ function openAddProductModal(defaultCat = null) {
     document.getElementById('productEditOldCategory').value = '';
     document.getElementById('productForm').reset();
     
-    populateCategoryDropdown(defaultCat || (activeMenuCategory !== 'todos' && !activeMenuCategory.startsWith('tab_') ? activeMenuCategory : 'pizzas_tradicionais'));
+    let targetCat = defaultCat;
+    if (!targetCat) {
+        if (activeMenuCategory !== 'todos' && !activeMenuCategory.startsWith('tab_')) {
+            targetCat = activeMenuCategory;
+        } else {
+            targetCat = 'pizzas_tradicionais';
+        }
+    }
     
-    const cat = document.getElementById('productCategorySelect').value || 'pizzas_tradicionais';
+    populateCategoryDropdown(targetCat);
+    
+    const cat = document.getElementById('productCategorySelect').value || targetCat;
     const defImg = getDefaultProductImageForCategory(cat);
     document.getElementById('productImage').value = defImg;
     updateProductImagePreview(defImg);
@@ -3351,18 +3652,37 @@ function openAddProductModal(defaultCat = null) {
 }
 
 function openEditProductModal(id, categoryKey) {
-    if (!menuData || !menuData.menu_items) return;
-    const list = menuData.menu_items[categoryKey] || [];
-    const item = list.find(i => i.id === id);
+    if (!menuData) return;
+    
+    let item = null;
+    if (categoryKey === 'sabores_tradicionais') {
+        item = (menuData.sharedOptionGroups?.saboresTradicionais || []).find(i => i.id === id);
+    } else if (categoryKey === 'sabores_especiais') {
+        item = (menuData.sharedOptionGroups?.saboresEspeciais || []).find(i => i.id === id);
+    } else if (categoryKey === 'bordas') {
+        if (menuData.borders && menuData.borders[id]) {
+            item = { id, ...menuData.borders[id] };
+        } else if (menuData.sharedOptionGroups?.crust?.options) {
+            item = menuData.sharedOptionGroups.crust.options.find(i => i.id === id);
+        }
+    } else {
+        const list = menuData.menu_items?.[categoryKey] || [];
+        item = list.find(i => i.id === id);
+    }
+    
     if (!item) return;
     
-    document.getElementById('productModalTitle').innerText = 'Editar Produto';
+    const isFlavor = categoryKey === 'sabores_tradicionais' || categoryKey === 'sabores_especiais';
+    const isBorder = categoryKey === 'bordas';
+    const modalTitle = isFlavor ? 'Editar Sabor' : (isBorder ? 'Editar Borda' : 'Editar Produto');
+    
+    document.getElementById('productModalTitle').innerText = modalTitle;
     document.getElementById('productEditId').value = item.id;
     document.getElementById('productEditOldCategory').value = categoryKey;
     
     document.getElementById('productName').value = item.name || '';
-    document.getElementById('productDescription').value = item.description || '';
-    document.getElementById('productPrice').value = Number(item.price || 0).toFixed(2);
+    document.getElementById('productDescription').value = item.ingredients || item.description || '';
+    document.getElementById('productPrice').value = Number(item.price || item.basePrice || item.displayPrice || 0).toFixed(2);
     document.getElementById('productBadge').value = item.badge || '';
     
     populateCategoryDropdown(categoryKey);
@@ -3380,8 +3700,93 @@ function closeProductModal() {
 }
 
 function toggleProductAvailability(id, categoryKey, isChecked) {
-    if (!menuData || !menuData.menu_items) return;
-    const list = menuData.menu_items[categoryKey];
+    if (!menuData) return;
+    
+    if (categoryKey === 'sabores_tradicionais') {
+        if (!menuData.sharedOptionGroups) menuData.sharedOptionGroups = {};
+        if (!Array.isArray(menuData.sharedOptionGroups.saboresTradicionais)) menuData.sharedOptionGroups.saboresTradicionais = [];
+        const list = menuData.sharedOptionGroups.saboresTradicionais;
+        const index = list.findIndex(i => i.id === id);
+        if (index === -1) return;
+        list[index].available = isChecked;
+        
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebase.database().ref(`menu/sharedOptionGroups/saboresTradicionais/${index}/available`).set(isChecked)
+                .then(() => {
+                    triggerCentralAutoBackup();
+                    showToast(`Disponibilidade de "${list[index].name}" atualizada!`, 'success');
+                })
+                .catch(err => {
+                    console.error("Erro ao atualizar disponibilidade:", err);
+                    showToast("Erro ao atualizar no Firebase.", "error");
+                });
+        } else {
+            saveLocalMenu(() => {
+                renderProductsList();
+                showToast(`Disponibilidade atualizada localmente!`, 'success');
+            });
+        }
+        return;
+    }
+    
+    if (categoryKey === 'sabores_especiais') {
+        if (!menuData.sharedOptionGroups) menuData.sharedOptionGroups = {};
+        if (!Array.isArray(menuData.sharedOptionGroups.saboresEspeciais)) menuData.sharedOptionGroups.saboresEspeciais = [];
+        const list = menuData.sharedOptionGroups.saboresEspeciais;
+        const index = list.findIndex(i => i.id === id);
+        if (index === -1) return;
+        list[index].available = isChecked;
+        
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebase.database().ref(`menu/sharedOptionGroups/saboresEspeciais/${index}/available`).set(isChecked)
+                .then(() => {
+                    triggerCentralAutoBackup();
+                    showToast(`Disponibilidade de "${list[index].name}" atualizada!`, 'success');
+                })
+                .catch(err => {
+                    console.error("Erro ao atualizar disponibilidade:", err);
+                    showToast("Erro ao atualizar no Firebase.", "error");
+                });
+        } else {
+            saveLocalMenu(() => {
+                renderProductsList();
+                showToast(`Disponibilidade atualizada localmente!`, 'success');
+            });
+        }
+        return;
+    }
+    
+    if (categoryKey === 'bordas') {
+        if (!menuData.borders) menuData.borders = {};
+        if (menuData.borders[id]) {
+            menuData.borders[id].available = isChecked;
+        }
+        if (menuData.sharedOptionGroups?.crust?.options) {
+            const b = menuData.sharedOptionGroups.crust.options.find(o => o.id === id);
+            if (b) b.available = isChecked;
+        }
+        
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebase.database().ref(`menu/borders/${id}/available`).set(isChecked)
+                .then(() => {
+                    triggerCentralAutoBackup();
+                    showToast(`Borda atualizada!`, 'success');
+                })
+                .catch(err => {
+                    console.error("Erro ao atualizar disponibilidade:", err);
+                    showToast("Erro ao atualizar no Firebase.", "error");
+                });
+        } else {
+            saveLocalMenu(() => {
+                renderProductsList();
+                showToast(`Disponibilidade atualizada localmente!`, 'success');
+            });
+        }
+        return;
+    }
+
+    // Categoria padrão em menu_items
+    const list = menuData.menu_items?.[categoryKey];
     if (!list) return;
     
     const index = list.findIndex(i => i.id === id);
@@ -3410,7 +3815,6 @@ function toggleProductAvailability(id, categoryKey, isChecked) {
 function saveProduct(event) {
     event.preventDefault();
     if (!menuData) return;
-    if (!menuData.menu_items) menuData.menu_items = {};
     
     const editId = document.getElementById('productEditId').value;
     const oldCategory = document.getElementById('productEditOldCategory').value;
@@ -3422,85 +3826,135 @@ function saveProduct(event) {
     const badge = document.getElementById('productBadge').value.trim();
     const image = document.getElementById('productImage').value.trim() || getDefaultProductImageForCategory(categoryKey);
     
-    if (!menuData.menu_items[categoryKey]) {
-        menuData.menu_items[categoryKey] = [];
-    }
-    
-    if (editId) {
-        if (oldCategory && oldCategory !== categoryKey && menuData.menu_items[oldCategory]) {
-            const oldList = menuData.menu_items[oldCategory];
-            const oldIdx = oldList.findIndex(i => i.id === editId);
-            let prevItem = {};
-            if (oldIdx !== -1) {
-                prevItem = oldList[oldIdx];
-                oldList.splice(oldIdx, 1);
+    let firebasePromise = null;
+
+    if (categoryKey === 'sabores_tradicionais') {
+        if (!menuData.sharedOptionGroups) menuData.sharedOptionGroups = {};
+        if (!Array.isArray(menuData.sharedOptionGroups.saboresTradicionais)) menuData.sharedOptionGroups.saboresTradicionais = [];
+        const list = menuData.sharedOptionGroups.saboresTradicionais;
+        
+        if (editId) {
+            const idx = list.findIndex(i => i.id === editId);
+            if (idx !== -1) {
+                list[idx].name = name;
+                list[idx].ingredients = description;
+                list[idx].image = image;
+                if (badge) list[idx].badge = badge; else delete list[idx].badge;
+            }
+        } else {
+            const id = 'sabor_' + name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            list.push({ id, name, ingredients: description, image, available: true, ...(badge ? { badge } : {}) });
+        }
+        
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebasePromise = firebase.database().ref('menu/sharedOptionGroups/saboresTradicionais').set(list);
+        }
+    } else if (categoryKey === 'sabores_especiais') {
+        if (!menuData.sharedOptionGroups) menuData.sharedOptionGroups = {};
+        if (!Array.isArray(menuData.sharedOptionGroups.saboresEspeciais)) menuData.sharedOptionGroups.saboresEspeciais = [];
+        const list = menuData.sharedOptionGroups.saboresEspeciais;
+        
+        if (editId) {
+            const idx = list.findIndex(i => i.id === editId);
+            if (idx !== -1) {
+                list[idx].name = name;
+                list[idx].ingredients = description;
+                list[idx].image = image;
+                if (badge) list[idx].badge = badge; else delete list[idx].badge;
+            }
+        } else {
+            const id = 'esp_' + name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            list.push({ id, name, ingredients: description, image, available: true, ...(badge ? { badge } : {}) });
+        }
+        
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebasePromise = firebase.database().ref('menu/sharedOptionGroups/saboresEspeciais').set(list);
+        }
+    } else if (categoryKey === 'bordas') {
+        if (!menuData.borders) menuData.borders = {};
+        const borderId = editId || ('borda_' + name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''));
+        menuData.borders[borderId] = {
+            id: borderId,
+            name,
+            price,
+            available: true
+        };
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebasePromise = firebase.database().ref('menu/borders').set(menuData.borders);
+        }
+    } else {
+        // Categoria padrão em menu_items
+        if (!menuData.menu_items) menuData.menu_items = {};
+        if (!menuData.menu_items[categoryKey]) menuData.menu_items[categoryKey] = [];
+        
+        if (editId) {
+            if (oldCategory && oldCategory !== categoryKey && menuData.menu_items[oldCategory]) {
+                const oldList = menuData.menu_items[oldCategory];
+                const oldIdx = oldList.findIndex(i => i.id === editId);
+                let prevItem = {};
+                if (oldIdx !== -1) {
+                    prevItem = oldList[oldIdx];
+                    oldList.splice(oldIdx, 1);
+                }
+                
+                const updatedItem = {
+                    ...prevItem,
+                    id: editId,
+                    name,
+                    description,
+                    category: categoryKey,
+                    price,
+                    image,
+                    available: prevItem.available !== false
+                };
+                if (badge) updatedItem.badge = badge; else delete updatedItem.badge;
+                menuData.menu_items[categoryKey].push(updatedItem);
+            } else {
+                const list = menuData.menu_items[categoryKey];
+                const idx = list.findIndex(i => i.id === editId);
+                if (idx !== -1) {
+                    list[idx].name = name;
+                    list[idx].description = description;
+                    list[idx].category = categoryKey;
+                    list[idx].price = price;
+                    list[idx].image = image;
+                    if (badge) list[idx].badge = badge; else delete list[idx].badge;
+                }
+            }
+        } else {
+            const id = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            const list = menuData.menu_items[categoryKey];
+            
+            if (list.some(i => i.id === id)) {
+                alert("Já existe um produto cadastrado com um nome muito parecido nesta categoria.");
+                return;
             }
             
-            const updatedItem = {
-                ...prevItem,
-                id: editId,
+            const newItem = {
+                id,
                 name,
                 description,
                 category: categoryKey,
                 price,
                 image,
-                available: prevItem.available !== false
+                available: true
             };
-            if (badge) {
-                updatedItem.badge = badge;
-            } else {
-                delete updatedItem.badge;
-            }
-            
-            menuData.menu_items[categoryKey].push(updatedItem);
-        } else {
-            const list = menuData.menu_items[categoryKey];
-            const idx = list.findIndex(i => i.id === editId);
-            if (idx !== -1) {
-                list[idx].name = name;
-                list[idx].description = description;
-                list[idx].category = categoryKey;
-                list[idx].price = price;
-                list[idx].image = image;
-                if (badge) {
-                    list[idx].badge = badge;
-                } else {
-                    delete list[idx].badge;
-                }
-            }
-        }
-    } else {
-        const id = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-        const list = menuData.menu_items[categoryKey];
-        
-        if (list.some(i => i.id === id)) {
-            alert("JÃ¡ existe um produto cadastrado com um nome muito parecido nesta categoria.");
-            return;
+            if (badge) newItem.badge = badge;
+            list.push(newItem);
         }
         
-        const newItem = {
-            id,
-            name,
-            description,
-            category: categoryKey,
-            price,
-            image,
-            available: true
-        };
-        if (badge) newItem.badge = badge;
-        
-        list.push(newItem);
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebasePromise = firebase.database().ref('menu/menu_items').set(menuData.menu_items);
+        }
     }
     
-    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-        firebase.database().ref('menu/menu_items').set(menuData.menu_items)
-        .then(() => {
+    if (firebasePromise) {
+        firebasePromise.then(() => {
             closeProductModal();
             triggerCentralAutoBackup();
             showToast("Produto salvo com sucesso no Firebase!", "success");
             renderMenuManager();
-        })
-        .catch(err => {
+        }).catch(err => {
             console.error(err);
             alert("Erro ao gravar produto no Firebase.");
         });
@@ -3515,32 +3969,66 @@ function saveProduct(event) {
 }
 
 function deleteProduct(id, categoryKey) {
-    if (!menuData || !menuData.menu_items) return;
-    const list = menuData.menu_items[categoryKey];
-    if (!list) return;
+    if (!menuData) return;
     
-    const item = list.find(i => i.id === id);
-    if (!item) return;
+    let itemName = id;
+    let firebasePromise = null;
     
-    if (!confirm(`Tem certeza que deseja excluir o produto "${item.name}" permanentemente?`)) return;
+    if (categoryKey === 'sabores_tradicionais') {
+        const list = menuData.sharedOptionGroups?.saboresTradicionais || [];
+        const it = list.find(i => i.id === id);
+        if (!it) return;
+        itemName = it.name;
+        if (!confirm(`Tem certeza que deseja excluir o sabor "${itemName}" permanentemente?`)) return;
+        menuData.sharedOptionGroups.saboresTradicionais = list.filter(i => i.id !== id);
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebasePromise = firebase.database().ref('menu/sharedOptionGroups/saboresTradicionais').set(menuData.sharedOptionGroups.saboresTradicionais);
+        }
+    } else if (categoryKey === 'sabores_especiais') {
+        const list = menuData.sharedOptionGroups?.saboresEspeciais || [];
+        const it = list.find(i => i.id === id);
+        if (!it) return;
+        itemName = it.name;
+        if (!confirm(`Tem certeza que deseja excluir o sabor especial "${itemName}" permanentemente?`)) return;
+        menuData.sharedOptionGroups.saboresEspeciais = list.filter(i => i.id !== id);
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebasePromise = firebase.database().ref('menu/sharedOptionGroups/saboresEspeciais').set(menuData.sharedOptionGroups.saboresEspeciais);
+        }
+    } else if (categoryKey === 'bordas') {
+        if (!confirm(`Tem certeza que deseja excluir esta borda permanentemente?`)) return;
+        if (menuData.borders) delete menuData.borders[id];
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebasePromise = firebase.database().ref(`menu/borders/${id}`).remove();
+        }
+    } else {
+        const list = menuData.menu_items?.[categoryKey];
+        if (!list) return;
+        
+        const item = list.find(i => i.id === id);
+        if (!item) return;
+        itemName = item.name;
+        
+        if (!confirm(`Tem certeza que deseja excluir o produto "${item.name}" permanentemente?`)) return;
+        menuData.menu_items[categoryKey] = list.filter(i => i.id !== id);
+        
+        if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            firebasePromise = firebase.database().ref(`menu/menu_items/${categoryKey}`).set(menuData.menu_items[categoryKey]);
+        }
+    }
     
-    menuData.menu_items[categoryKey] = list.filter(i => i.id !== id);
-    
-    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-        firebase.database().ref(`menu/menu_items/${categoryKey}`).set(menuData.menu_items[categoryKey])
-        .then(() => {
+    if (firebasePromise) {
+        firebasePromise.then(() => {
             triggerCentralAutoBackup();
-            showToast(`Produto "${item.name}" excluÃ­do com sucesso!`, "success");
+            showToast(`"${itemName}" excluído com sucesso!`, "success");
             renderMenuManager();
-        })
-        .catch(err => {
+        }).catch(err => {
             console.error(err);
             alert("Erro ao excluir produto no Firebase.");
         });
     } else {
         saveLocalMenu(() => {
             triggerCentralAutoBackup();
-            showToast(`Produto "${item.name}" excluÃ­do localmente!`, "success");
+            showToast(`"${itemName}" excluído localmente!`, "success");
             renderMenuManager();
         });
     }
@@ -3662,12 +4150,15 @@ function deleteAdicional(key) {
 
 function getDefaultProductImageForCategory(catKey) {
     const defaults = {
-        'pizzas_tradicionais': '../assets/pizza_hero.png',
-        'pizzas_especiais': '../assets/pizzas/especiais/pizza_especial.jpg',
+        'pizzas_tradicionais': '../assets/pizzas/tradicionais/calabresa.webp',
+        'sabores_tradicionais': '../assets/pizzas/tradicionais/calabresa.webp',
+        'pizzas_especiais': '../assets/pizzas/tradicionais/calabresa.webp',
+        'sabores_especiais': '../assets/pizzas/tradicionais/calabresa.webp',
         'pizzas_salgadas': '../assets/pizza_hero.png',
-        'pizzas_doces': '../assets/pizzas/doces/pizza_doce_nutella.jpg',
-        'calzones': '../assets/calzones/calzone_artesanal.jpg',
-        'bebidas': '../assets/bebidas/coca_2l.jpg'
+        'pizzas_doces': '../assets/gourmet_doce_morango.png',
+        'calzones': '../assets/pizza_media.jpg',
+        'bebidas': '../assets/bebidas/coca_2l.jpg',
+        'bordas': '../assets/pizza_hero.png'
     };
     return defaults[catKey] || '../assets/pizza_hero.png';
 }
@@ -3691,14 +4182,22 @@ function populateCategoryDropdown(selectedCat = 'pizzas_tradicionais') {
     if (!select) return;
     
     select.innerHTML = '';
-    const defaultCats = ['pizzas_tradicionais', 'pizzas_especiais', 'calzones', 'bebidas', 'pizzas_salgadas', 'pizzas_doces'];
+    const defaultCats = [
+        'pizzas_tradicionais',
+        'sabores_tradicionais',
+        'pizzas_especiais',
+        'sabores_especiais',
+        'calzones',
+        'bebidas',
+        'bordas'
+    ];
     const menuItems = menuData?.menu_items || {};
     const catKeys = Array.from(new Set([...defaultCats, ...Object.keys(menuItems)]));
     
     catKeys.forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat;
-        opt.innerText = getCategoryDisplayName(cat);
+        opt.innerText = `${getCategoryEmoji(cat)} ${getCategoryDisplayName(cat)}`;
         if (cat === selectedCat) opt.selected = true;
         select.appendChild(opt);
     });
@@ -3711,10 +4210,23 @@ function populateProductImageSuggestions(category) {
     container.innerHTML = '';
     let suggestions = [];
     
-    if (category === 'pizzas_salgadas') {
+    if (category === 'pizzas_tradicionais' || category === 'sabores_tradicionais') {
+        suggestions = [
+            { label: 'Calabresa', value: 'assets/pizzas/tradicionais/calabresa.webp' },
+            { label: '4 Queijos', value: 'assets/pizzas/tradicionais/4-queijos.webp' },
+            { label: 'Frango c/ Requeijão', value: 'assets/pizzas/tradicionais/frango-com-requeijao.webp' },
+            { label: 'Bacon', value: 'assets/pizzas/tradicionais/bacon.webp' }
+        ];
+    } else if (category === 'pizzas_especiais' || category === 'sabores_especiais') {
+        suggestions = [
+            { label: 'Pizza Especial', value: 'assets/pizzas/tradicionais/calabresa.webp' },
+            { label: 'Filé Mignon', value: 'assets/pizzas/tradicionais/calabresa.webp' },
+            { label: 'Marguerita', value: 'assets/pizzas/tradicionais/marguerita.webp' }
+        ];
+    } else if (category === 'pizzas_salgadas') {
         suggestions = [
             { label: 'Pizza Artesanal', value: 'assets/pizza_hero.png' },
-            { label: 'Pizza MÃ©dia', value: 'assets/pizza_media.jpg' }
+            { label: 'Pizza Média', value: 'assets/pizza_media.jpg' }
         ];
     } else if (category === 'pizzas_doces') {
         suggestions = [
@@ -3726,7 +4238,14 @@ function populateProductImageSuggestions(category) {
         ];
     } else if (category === 'bebidas') {
         suggestions = [
-            { label: 'Bebidas em Geral', value: 'assets/gourmet_bebida.png' }
+            { label: 'Coca-Cola 2L', value: 'assets/bebidas/coca_2l.jpg' },
+            { label: 'Guaraná 2L', value: 'assets/bebidas/guarana_2l.jpg' },
+            { label: 'Coca Lata', value: 'assets/bebidas/coca_350.jpg' },
+            { label: 'Água', value: 'assets/bebidas/agua_sem_gas_500.jpg' }
+        ];
+    } else if (category === 'bordas') {
+        suggestions = [
+            { label: 'Borda Recheada', value: 'assets/pizza_hero.png' }
         ];
     }
     
