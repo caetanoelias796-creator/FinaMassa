@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Fina Massa Pizzaria - Módulo Garçom (Atendimento de Mesas)
    ========================================================================== */
 
@@ -438,11 +438,14 @@ function resolveProductImage(item, categoryKey) {
 
     const bebidaMap = {
         'coca_2l': '../assets/bebidas/coca_2l.jpg',
+        'coca_600': '../assets/bebidas/coca_600.jpg',
         'coca_lata': '../assets/bebidas/coca_350.jpg',
         'guarana_2l': '../assets/bebidas/guarana_2l.jpg',
+        'guarana_600': '../assets/bebidas/guarana_600.jpg',
         'guarana_lata': '../assets/bebidas/guarana_350.jpg',
         'agua_mineral': '../assets/bebidas/agua_sem_gas_500.jpg',
         'agua_gas': '../assets/bebidas/agua_com_gas_500.jpg',
+        'elev_2l': '../assets/bebidas/energetico_elev_2l.jpg',
         'cerveja_lata': '../assets/bebidas/heineken_latao_473.jpg',
         'cerveja_long': '../assets/bebidas/heineken_latao_473.jpg',
         'vinho_tinto': '../assets/vinho.png'

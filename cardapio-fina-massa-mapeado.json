@@ -1,4 +1,4 @@
-﻿{
+{
   "_meta": {
     "status": "PRÃ‰VIA LOCAL â€” NÃƒO IMPORTADA",
     "fonte": "G:\\Site fina massa\\piza.pdf",
@@ -110,13 +110,13 @@
     ]
   },
   "bebidas": [
-    { "id": "bebida_coca_cola_2l", "nome": "Coca Cola 2l", "volume": "2 Litros", "preco": 16.00 },
-    { "id": "bebida_guarana_2l", "nome": "Guarana 2l", "volume": "2 Litros", "preco": 15.00 },
-    { "id": "bebida_coca_cola_600ml", "nome": "Coca Cola 600ml", "volume": "600ml", "preco": 10.00 },
-    { "id": "bebida_guarana_600ml", "nome": "Guarana 600ml", "volume": "600ml", "preco": 9.00 },
-    { "id": "bebida_coca_cola_lata", "nome": "Coca Cola lata", "volume": "Lata (nÃ£o especificado)", "preco": 6.00 },
-    { "id": "bebida_guarana_lata", "nome": "Guarana lata", "volume": "Lata (nÃ£o especificado)", "preco": 6.00 },
-    { "id": "bebida_agua_com_sem_gas", "nome": "Agua com ou s/ gÃ¡s", "volume": "Garrafa (nÃ£o especificado)", "preco": 4.00 },
-    { "id": "bebida_energetico_elev_2l", "nome": "Energetico Elev 2l", "volume": "2 Litros", "preco": 13.00 }
+    { "id": "bebida_coca_cola_2l", "nome": "Coca Cola 2l", "volume": "2 Litros", "preco": 16.00, "imagem": "assets/bebidas/coca_2l.jpg" },
+    { "id": "bebida_guarana_2l", "nome": "Guarana 2l", "volume": "2 Litros", "preco": 15.00, "imagem": "assets/bebidas/guarana_2l.jpg" },
+    { "id": "bebida_coca_cola_600ml", "nome": "Coca Cola 600ml", "volume": "600ml", "preco": 10.00, "imagem": "assets/bebidas/coca_600.jpg" },
+    { "id": "bebida_guarana_600ml", "nome": "Guarana 600ml", "volume": "600ml", "preco": 9.00, "imagem": "assets/bebidas/guarana_600.jpg" },
+    { "id": "bebida_coca_cola_lata", "nome": "Coca Cola lata", "volume": "Lata (350ml)", "preco": 6.00, "imagem": "assets/bebidas/coca_350.jpg" },
+    { "id": "bebida_guarana_lata", "nome": "Guarana lata", "volume": "Lata (350ml)", "preco": 6.00, "imagem": "assets/bebidas/guarana_350.jpg" },
+    { "id": "bebida_agua_com_sem_gas", "nome": "Agua com ou s/ gás", "volume": "Garrafa (500ml)", "preco": 4.00, "imagem": "assets/bebidas/agua_sem_gas_500.jpg" },
+    { "id": "bebida_energetico_elev_2l", "nome": "Energetico Elev 2l", "volume": "2 Litros", "preco": 13.00, "imagem": "assets/bebidas/energetico_elev_2l.jpg" }
   ]
 }

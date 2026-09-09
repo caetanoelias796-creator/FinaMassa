@@ -3060,75 +3060,81 @@
                                         }
                                     ],
                        "bebidas":  [
-                                       {
-                                           "id":  "coca_2l",
-                                           "image":  "assets/coca_cola.png",
-                                           "name":  "Coca Cola 2l",
-                                           "price":  16.00
-                                       },
-                                       {
-                                           "id":  "guarana_2l",
-                                           "image":  "assets/guarana.png",
-                                           "name":  "Guarana 2l",
-                                           "price":  15.00
-                                       },
-                                       {
-                                           "id":  "coca_600",
-                                           "image":  "assets/coca_cola.png",
-                                           "name":  "Coca Cola 600ml",
-                                           "price":  10.00
-                                       },
-                                       {
-                                           "available":  true,
-                                           "id":  "coca_zero_600",
-                                           "image":  "assets/coca_cola.png",
-                                           "name":  "Coca Cola Zero 600ml",
-                                           "price":  10.00
-                                       },
-                                       {
-                                           "id":  "guarana_600",
-                                           "image":  "assets/guarana.png",
-                                           "name":  "Guarana 600ml",
-                                           "price":  9.00
-                                       },
-                                       {
-                                           "id":  "coca_lata",
-                                           "image":  "assets/coca_cola.png",
-                                           "name":  "Coca Cola lata",
-                                           "price":  6.00
-                                       },
-                                       {
-                                           "available":  true,
-                                           "id":  "coca_zero_lata",
-                                           "image":  "assets/coca_cola.png",
-                                           "name":  "Coca Cola Zero lata",
-                                           "price":  6.00
-                                       },
-                                       {
-                                           "id":  "guarana_lata",
-                                           "image":  "assets/guarana.png",
-                                           "name":  "Guarana lata",
-                                           "price":  6.00
-                                       },
-                                       {
-                                           "id":  "agua",
-                                           "image":  "assets/agua.png",
-                                           "name":  "Agua com ou s/ gás",
-                                           "price":  4.00
-                                       },
-                                       {
-                                           "id":  "vinho_seco",
-                                           "image":  "assets/vinho.png",
-                                           "name":  "Vinho Seco",
-                                           "price":  35.00
-                                       },
-                                       {
-                                           "id":  "vinho_suave",
-                                           "image":  "assets/vinho.png",
-                                           "name":  "Vinho Suave",
-                                           "price":  35.00
-                                       }
-                                   ]
+                                        {
+                                            "id":  "coca_2l",
+                                            "image":  "assets/bebidas/coca_2l.jpg",
+                                            "name":  "Coca Cola 2l",
+                                            "price":  16.00
+                                        },
+                                        {
+                                            "id":  "guarana_2l",
+                                            "image":  "assets/bebidas/guarana_2l.jpg",
+                                            "name":  "Guarana 2l",
+                                            "price":  15.00
+                                        },
+                                        {
+                                            "id":  "coca_600",
+                                            "image":  "assets/bebidas/coca_600.jpg",
+                                            "name":  "Coca Cola 600ml",
+                                            "price":  10.00
+                                        },
+                                        {
+                                            "available":  true,
+                                            "id":  "coca_zero_600",
+                                            "image":  "assets/bebidas/coca_zero_600.jpg",
+                                            "name":  "Coca Cola Zero 600ml",
+                                            "price":  10.00
+                                        },
+                                        {
+                                            "id":  "guarana_600",
+                                            "image":  "assets/bebidas/guarana_600.jpg",
+                                            "name":  "Guarana 600ml",
+                                            "price":  9.00
+                                        },
+                                        {
+                                            "id":  "coca_lata",
+                                            "image":  "assets/bebidas/coca_350.jpg",
+                                            "name":  "Coca Cola lata",
+                                            "price":  6.00
+                                        },
+                                        {
+                                            "available":  true,
+                                            "id":  "coca_zero_lata",
+                                            "image":  "assets/bebidas/coca_zero_350.jpg",
+                                            "name":  "Coca Cola Zero lata",
+                                            "price":  6.00
+                                        },
+                                        {
+                                            "id":  "guarana_lata",
+                                            "image":  "assets/bebidas/guarana_350.jpg",
+                                            "name":  "Guarana lata",
+                                            "price":  6.00
+                                        },
+                                        {
+                                            "id":  "agua",
+                                            "image":  "assets/bebidas/agua_sem_gas_500.jpg",
+                                            "name":  "Agua com ou s/ gás",
+                                            "price":  4.00
+                                        },
+                                        {
+                                            "id":  "elev_2l",
+                                            "image":  "assets/bebidas/energetico_elev_2l.jpg",
+                                            "name":  "Energetico Elev 2l",
+                                            "price":  13.00
+                                        },
+                                        {
+                                            "id":  "vinho_seco",
+                                            "image":  "assets/bebidas/vinho.jpg",
+                                            "name":  "Vinho Seco",
+                                            "price":  35.00
+                                        },
+                                        {
+                                            "id":  "vinho_suave",
+                                            "image":  "assets/bebidas/vinho.jpg",
+                                            "name":  "Vinho Suave",
+                                            "price":  35.00
+                                        }
+                                    ]
                    },
     "borders":  {
                     "borda_tradicional":  {

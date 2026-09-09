@@ -295,6 +295,30 @@ function resolveProductImage(item, categoryKey) {
         return 'assets/calzones/calzone_artesanal.jpg';
     }
     if (categoryKey === 'bebidas') {
+        const id = (item?.id || '').toLowerCase();
+        const name = (item?.name || item?.nome || '').toLowerCase();
+        if (id.includes('guarana') || name.includes('guaran')) {
+            if (id.includes('2l') || name.includes('2l') || name.includes('2 litro')) return 'assets/bebidas/guarana_2l.jpg';
+            if (id.includes('600') || name.includes('600')) return 'assets/bebidas/guarana_600.jpg';
+            if (id.includes('lata') || name.includes('lata') || id.includes('350')) return 'assets/bebidas/guarana_350.jpg';
+            return 'assets/bebidas/guarana_2l.jpg';
+        }
+        if (id.includes('coca') || name.includes('coca')) {
+            if (id.includes('zero') || name.includes('zero')) return 'assets/bebidas/coca_zero_350.jpg';
+            if (id.includes('2l') || name.includes('2l') || name.includes('2 litro')) return 'assets/bebidas/coca_2l.jpg';
+            if (id.includes('600') || name.includes('600')) return 'assets/bebidas/coca_600.jpg';
+            if (id.includes('lata') || name.includes('lata') || id.includes('350')) return 'assets/bebidas/coca_350.jpg';
+            return 'assets/bebidas/coca_2l.jpg';
+        }
+        if (id.includes('agua') || name.includes('água') || name.includes('agua')) {
+            return 'assets/bebidas/agua_sem_gas_500.jpg';
+        }
+        if (id.includes('elev') || name.includes('elev') || name.includes('energ')) {
+            return 'assets/bebidas/energetico_elev_2l.jpg';
+        }
+        if (id.includes('vinho') || name.includes('vinho')) {
+            return 'assets/bebidas/vinho.jpg';
+        }
         return 'assets/bebidas/coca_2l.jpg';
     }
     return 'assets/pizza_hero.png';
