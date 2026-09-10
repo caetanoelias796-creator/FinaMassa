@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ==============================================================================
  * CustomerAuth.js — Módulo de Identificação e Gestão de Clientes por WhatsApp
  * Fina Massa Pizzaria
@@ -105,6 +105,7 @@
                     name: customer.name || 'Cliente',
                     normalizedPhone: customer.normalizedPhone || this.normalizePhone(customer.phone),
                     phoneFormatted: customer.phoneFormatted || this.formatPhone(customer.phone || customer.normalizedPhone),
+                    marketingWhatsApp: customer.marketingWhatsApp !== undefined ? Boolean(customer.marketingWhatsApp) : false,
                     loginTimestamp: Date.now()
                 };
                 localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(sessionData));
@@ -186,12 +187,13 @@
         },
 
         /**
-         * Cadastra um novo cliente com nome e WhatsApp normalizado.
+         * Cadastra um novo cliente com nome, WhatsApp normalizado e consentimento de marketing.
          * @param {string} rawPhone
          * @param {string} name
+         * @param {boolean} [marketingWhatsApp=false]
          * @returns {Promise<{success: boolean, customer?: object, error?: string}>}
          */
-        registerCustomer: function (rawPhone, name) {
+        registerCustomer: function (rawPhone, name, marketingWhatsApp) {
             const self = this;
             return new Promise((resolve) => {
                 if (!self.validatePhone(rawPhone)) {
@@ -208,6 +210,7 @@
                 const cleanPhone = self.normalizePhone(rawPhone);
                 const formattedPhone = self.formatPhone(cleanPhone);
                 const now = Date.now();
+                const consent = Boolean(marketingWhatsApp);
 
                 const customerData = {
                     id: cleanPhone,
@@ -216,6 +219,8 @@
                     normalizedPhone: cleanPhone,
                     phoneFormatted: formattedPhone,
                     phone: formattedPhone,
+                    marketingWhatsApp: consent,
+                    marketingConsentAt: consent ? now : null,
                     createdAt: now,
                     updatedAt: now,
                     lastOrderAt: null,
@@ -283,13 +288,56 @@
         },
 
         /**
+         * Atualiza o consentimento de marketing do cliente.
+         * @param {string} cleanPhone
+         * @param {boolean} consent
+         * @returns {Promise<boolean>}
+         */
+        updateMarketingConsent: function (cleanPhone, consent) {
+            const self = this;
+            return new Promise((resolve) => {
+                cleanPhone = self.normalizePhone(cleanPhone);
+                if (!cleanPhone) {
+                    resolve(false);
+                    return;
+                }
+
+                const flag = Boolean(consent);
+                const now = Date.now();
+
+                const session = self.getSession();
+                if (session && session.normalizedPhone === cleanPhone) {
+                    session.marketingWhatsApp = flag;
+                    self.saveSession(session);
+                }
+
+                if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                    const updates = {
+                        [`customers/${cleanPhone}/marketingWhatsApp`]: flag,
+                        [`customers/${cleanPhone}/marketingConsentAt`]: flag ? now : null,
+                        [`customers/${cleanPhone}/updatedAt`]: now,
+                        [`menu/customers/${cleanPhone}/marketingWhatsApp`]: flag,
+                        [`menu/customers/${cleanPhone}/marketingConsentAt`]: flag ? now : null,
+                        [`menu/customers/${cleanPhone}/updatedAt`]: now
+                    };
+                    firebase.database().ref().update(updates)
+                        .then(() => resolve(true))
+                        .catch(() => resolve(true));
+                } else {
+                    resolve(true);
+                }
+            });
+        },
+
+        /**
          * Atualiza métricas do cliente com segurança atômica (transação)
          * ao confirmar um novo pedido.
          * @param {string} cleanPhone
          * @param {number} orderTotal
          * @param {string|number} orderId
+         * @param {boolean} [marketingConsent]
          */
-        updateCustomerStatsOnOrder: function (cleanPhone, orderTotal, orderId) {
+        updateCustomerStatsOnOrder: function (cleanPhone, orderTotal, orderId, marketingConsent) {
             if (!cleanPhone) return;
             cleanPhone = this.normalizePhone(cleanPhone);
             const total = Number(orderTotal) || 0;
@@ -305,12 +353,15 @@
             custRef.transaction((current) => {
                 if (!current) {
                     const session = this.getSession();
+                    const consent = marketingConsent !== undefined ? Boolean(marketingConsent) : (session && session.marketingWhatsApp !== undefined ? Boolean(session.marketingWhatsApp) : false);
                     return {
                         id: cleanPhone,
                         customerId: cleanPhone,
                         name: (session && session.name) ? session.name : 'Cliente',
                         normalizedPhone: cleanPhone,
                         phoneFormatted: this.formatPhone(cleanPhone),
+                        marketingWhatsApp: consent,
+                        marketingConsentAt: consent ? now : null,
                         createdAt: now,
                         updatedAt: now,
                         lastOrderAt: now,
@@ -318,6 +369,13 @@
                         totalOrders: 1,
                         totalSpent: Math.round(total * 100) / 100
                     };
+                }
+
+                if (marketingConsent !== undefined) {
+                    current.marketingWhatsApp = Boolean(marketingConsent);
+                    if (marketingConsent) {
+                        current.marketingConsentAt = current.marketingConsentAt || now;
+                    }
                 }
 
                 current.lastOrderAt = now;

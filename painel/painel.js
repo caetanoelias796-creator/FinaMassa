@@ -2982,6 +2982,7 @@ function switchSection(section) {
     currentSection = section;
     const btnNavOrders = document.getElementById('btnNavOrders');
     const btnNavCustomers = document.getElementById('btnNavCustomers');
+    const btnNavCampaigns = document.getElementById('btnNavCampaigns');
     const btnNavTables = document.getElementById('btnNavTables');
     const btnNavMenu = document.getElementById('btnNavMenu');
     const btnNavDeliveryFees = document.getElementById('btnNavDeliveryFees');
@@ -2989,6 +2990,7 @@ function switchSection(section) {
     const btnNavSettings = document.getElementById('btnNavSettings');
     const sectionOrders = document.getElementById('section-orders');
     const sectionCustomers = document.getElementById('section-customers');
+    const sectionCampaigns = document.getElementById('section-campaigns');
     const sectionTables = document.getElementById('section-tables');
     const sectionMenu = document.getElementById('section-menu');
     const sectionDeliveryFees = document.getElementById('section-delivery-fees');
@@ -2998,6 +3000,7 @@ function switchSection(section) {
     // Reset active states
     if (btnNavOrders) btnNavOrders.classList.remove('active');
     if (btnNavCustomers) btnNavCustomers.classList.remove('active');
+    if (btnNavCampaigns) btnNavCampaigns.classList.remove('active');
     if (btnNavTables) btnNavTables.classList.remove('active');
     if (btnNavMenu) btnNavMenu.classList.remove('active');
     if (btnNavDeliveryFees) btnNavDeliveryFees.classList.remove('active');
@@ -3007,6 +3010,7 @@ function switchSection(section) {
     // Hide sections
     if (sectionOrders) sectionOrders.classList.add('display-none');
     if (sectionCustomers) sectionCustomers.classList.add('display-none');
+    if (sectionCampaigns) sectionCampaigns.classList.add('display-none');
     if (sectionTables) sectionTables.classList.add('display-none');
     if (sectionMenu) sectionMenu.classList.add('display-none');
     if (sectionDeliveryFees) sectionDeliveryFees.classList.add('display-none');
@@ -3021,6 +3025,12 @@ function switchSection(section) {
         if (sectionCustomers) {
             sectionCustomers.classList.remove('display-none');
             if (typeof renderCustomersManager === 'function') renderCustomersManager();
+        }
+    } else if (section === 'campaigns') {
+        if (btnNavCampaigns) btnNavCampaigns.classList.add('active');
+        if (sectionCampaigns) {
+            sectionCampaigns.classList.remove('display-none');
+            if (typeof renderCampaignsDashboard === 'function') renderCampaignsDashboard();
         }
     } else if (section === 'tables') {
         if (btnNavTables) btnNavTables.classList.add('active');
@@ -4535,6 +4545,28 @@ function renderSettingsDashboard() {
 
     updateTrackingStatusUI();
 
+    // WhatsApp Business API Settings (Fase 5.1)
+    const waCampaigns = settings.whatsappCampaigns || (typeof WhatsAppService !== 'undefined' ? WhatsAppService.getConfig() : {});
+    const settingsWaApiEnabled = document.getElementById('settingsWaApiEnabled');
+    const settingsWaPhoneNumberId = document.getElementById('settingsWaPhoneNumberId');
+    const settingsWaWabaId = document.getElementById('settingsWaWabaId');
+    const settingsWaApiToken = document.getElementById('settingsWaApiToken');
+    const settingsWaApiVersion = document.getElementById('settingsWaApiVersion');
+    const settingsWaDispatchDelayMs = document.getElementById('settingsWaDispatchDelayMs');
+    const settingsWaMenuUrl = document.getElementById('settingsWaMenuUrl');
+    const settingsWaBackendProxyUrl = document.getElementById('settingsWaBackendProxyUrl');
+
+    if (settingsWaApiEnabled) settingsWaApiEnabled.checked = waCampaigns.enabled === true;
+    if (settingsWaPhoneNumberId) settingsWaPhoneNumberId.value = waCampaigns.phoneNumberId || '';
+    if (settingsWaWabaId) settingsWaWabaId.value = waCampaigns.wabaId || '';
+    if (settingsWaApiToken) settingsWaApiToken.value = waCampaigns.apiToken || '';
+    if (settingsWaApiVersion) settingsWaApiVersion.value = waCampaigns.apiVersion || 'v21.0';
+    if (settingsWaDispatchDelayMs) settingsWaDispatchDelayMs.value = waCampaigns.dispatchDelayMs || 600;
+    if (settingsWaMenuUrl) settingsWaMenuUrl.value = waCampaigns.menuUrl || 'https://pizzariafinamassa.com.br/';
+    if (settingsWaBackendProxyUrl) settingsWaBackendProxyUrl.value = waCampaigns.backendProxyUrl || '';
+
+    updateWhatsAppApiUIStatus();
+
     for (let i = 1; i <= 10; i++) {
         const nameElem = document.getElementById(`settingsMotoboy${i}Name`);
         const wspElem = document.getElementById(`settingsMotoboy${i}Whatsapp`);
@@ -5059,6 +5091,33 @@ function saveSettings(event) {
             purchase: googleAdsPurchaseLabel
         }
     };
+
+    // WhatsApp Business API Settings (Fase 5.1)
+    const waEnabled = document.getElementById('settingsWaApiEnabled')?.checked || false;
+    const waPhoneId = (document.getElementById('settingsWaPhoneNumberId')?.value || '').trim();
+    const waWabaId = (document.getElementById('settingsWaWabaId')?.value || '').trim();
+    const waApiToken = (document.getElementById('settingsWaApiToken')?.value || '').trim();
+    const waApiVersion = (document.getElementById('settingsWaApiVersion')?.value || 'v21.0').trim();
+    const waDispatchDelayMs = Math.max(300, parseInt(document.getElementById('settingsWaDispatchDelayMs')?.value, 10) || 600);
+    const waMenuUrl = (document.getElementById('settingsWaMenuUrl')?.value || 'https://pizzariafinamassa.com.br/').trim();
+    const waBackendProxy = (document.getElementById('settingsWaBackendProxyUrl')?.value || '').trim();
+
+    const waCampaignsConfig = {
+        enabled: waEnabled,
+        commercialPhone: whatsapp,
+        phoneNumberId: waPhoneId,
+        wabaId: waWabaId,
+        apiToken: waApiToken,
+        apiVersion: waApiVersion,
+        dispatchDelayMs: waDispatchDelayMs,
+        menuUrl: waMenuUrl,
+        backendProxyUrl: waBackendProxy
+    };
+
+    menuData.settings.whatsappCampaigns = waCampaignsConfig;
+    if (typeof WhatsAppService !== 'undefined') {
+        WhatsAppService.saveConfig(waCampaignsConfig);
+    }
     
     for (let i = 1; i <= 10; i++) {
         const nameElem = document.getElementById(`settingsMotoboy${i}Name`);
@@ -5090,7 +5149,11 @@ function saveSettings(event) {
         .then(() => {
             renderSettingsDashboard();
             triggerCentralAutoBackup();
-            alert("Configurações salvas com sucesso no Firebase!");
+            if (typeof showToast === 'function') {
+                showToast("Configurações salvas com sucesso no Firebase!", "success");
+            } else {
+                alert("Configurações salvas com sucesso no Firebase!");
+            }
         })
         .catch(err => {
             alert("Erro ao salvar configurações no Firebase: " + err.message);
@@ -5099,9 +5162,79 @@ function saveSettings(event) {
     } else {
         saveLocalMenu(() => {
             triggerCentralAutoBackup();
-            alert("Configurações salvas localmente com sucesso!");
+            if (typeof showToast === 'function') {
+                showToast("Configurações salvas localmente!", "info");
+            } else {
+                alert("Configurações salvas localmente com sucesso!");
+            }
         });
     }
+}
+
+/* ==========================================================================
+   WhatsApp Business API Helpers (Fase 5.1)
+   ========================================================================== */
+function updateWhatsAppApiUIStatus() {
+    const badge = document.getElementById('waApiStatusBadge');
+    if (!badge || typeof WhatsAppService === 'undefined') return;
+
+    const status = WhatsAppService.checkIntegrationStatus();
+    if (status.configured) {
+        badge.className = 'crm-badge wa-badge-sent';
+        badge.innerHTML = '🟢 API Oficial Conectada';
+    } else {
+        const chk = document.getElementById('settingsWaApiEnabled');
+        if (chk && chk.checked) {
+            badge.className = 'crm-badge wa-badge-invalid';
+            badge.innerHTML = '🟡 Credenciais Pendentes';
+        } else {
+            badge.className = 'crm-badge wa-badge-pending';
+            badge.innerHTML = '⚪ Desativado / Não Configurado';
+        }
+    }
+}
+
+async function testWhatsAppApiConnection() {
+    const resultDiv = document.getElementById('waApiTestResult');
+    if (!resultDiv) return;
+
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<span style="color: #4285F4;">🔄 Testando conexão com os servidores da Meta...</span>';
+
+    // Salva temporariamente os valores informados no serviço para testar
+    const waPhoneId = (document.getElementById('settingsWaPhoneNumberId')?.value || '').trim();
+    const waToken = (document.getElementById('settingsWaApiToken')?.value || '').trim();
+    const waVersion = (document.getElementById('settingsWaApiVersion')?.value || 'v21.0').trim();
+
+    if (!waPhoneId || !waToken) {
+        resultDiv.innerHTML = '<span style="color: #ef5350;">❌ Preencha o Phone Number ID e o Access Token antes de testar.</span>';
+        return;
+    }
+
+    if (typeof WhatsAppService !== 'undefined') {
+        WhatsAppService.init({
+            enabled: true,
+            phoneNumberId: waPhoneId,
+            apiToken: waToken,
+            apiVersion: waVersion
+        });
+
+        const res = await WhatsAppService.testConnection();
+        if (res.ok) {
+            resultDiv.innerHTML = `<span style="color: #25d366; font-weight: 700;">✅ ${res.message}</span>`;
+            updateWhatsAppApiUIStatus();
+        } else {
+            resultDiv.innerHTML = `<span style="color: #ef5350; font-weight: 600;">❌ ${res.message}</span>`;
+        }
+    } else {
+        resultDiv.innerHTML = '<span style="color: #ef5350;">❌ WhatsAppService não carregado.</span>';
+    }
+}
+
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.type = input.type === 'password' ? 'text' : 'password';
 }
 
 /* ==========================================================================

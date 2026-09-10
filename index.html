@@ -440,6 +440,16 @@
                             </div>
                             <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Faça o pagamento via Pix e envie o comprovante no WhatsApp ao finalizar o pedido.</p>
                         </div>
+
+                        <!-- Consentimento de Promoções por WhatsApp no Checkout -->
+                        <div class="form-group" style="margin-top: 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 12px;">
+                            <label class="auth-marketing-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; user-select: none;">
+                                <input type="checkbox" id="checkoutMarketingCheckbox" checked style="margin-top: 3px; accent-color: #25d366; width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-size: 12.5px; color: rgba(255, 255, 255, 0.85); line-height: 1.4;">
+                                    Quero receber novidades e promoções da <strong>Fina Massa</strong> pelo WhatsApp. 🍕📲
+                                </span>
+                            </label>
+                        </div>
                     </div>
                     
                     <!-- Submit -->
@@ -542,6 +552,15 @@
                     <input type="text" id="authNameInput" class="auth-input" placeholder="Seu nome" maxlength="50" autocomplete="name" onkeydown="if(event.key==='Enter') handleCustomerRegisterSubmit()">
                 </div>
                 <div id="authNameError" class="auth-error-msg display-none"></div>
+
+                <div class="auth-marketing-wrapper" style="margin: 14px 0 18px 0; text-align: left; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 12px;">
+                    <label class="auth-marketing-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="authMarketingCheckbox" checked style="margin-top: 3px; accent-color: #25d366; width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 12.5px; color: rgba(255, 255, 255, 0.85); line-height: 1.4;">
+                            Quero receber novidades e promoções exclusivas da <strong>Fina Massa</strong> pelo WhatsApp. 🍕📲
+                        </span>
+                    </label>
+                </div>
 
                 <button type="button" class="btn btn-primary auth-action-btn" id="btnStartOrdering" onclick="handleCustomerRegisterSubmit()">
                     <span>COMEÇAR A PEDIR 🍕</span>

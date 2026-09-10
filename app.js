@@ -1746,8 +1746,11 @@ function submitOrder() {
         updateCartUI();
 
         // Atualização atômica das métricas do cliente (sem duplicação)
+        const checkoutMarketingEl = document.getElementById('checkoutMarketingCheckbox');
+        const checkoutMarketingConsent = checkoutMarketingEl ? Boolean(checkoutMarketingEl.checked) : undefined;
+
         if (typeof CustomerAuth !== 'undefined' && cleanPhone && cleanPhone.length >= 8) {
-            CustomerAuth.updateCustomerStatsOnOrder(cleanPhone, total, orderId);
+            CustomerAuth.updateCustomerStatsOnOrder(cleanPhone, total, orderId, checkoutMarketingConsent);
 
             // Se não possuía sessão ativa no navegador, salva para que futuras visitas o reconheçam
             if (!CustomerAuth.getSession()) {
@@ -1756,7 +1759,8 @@ function submitOrder() {
                     customerId: cleanPhone,
                     name: clientName,
                     normalizedPhone: cleanPhone,
-                    phoneFormatted: clientPhone
+                    phoneFormatted: clientPhone,
+                    marketingWhatsApp: checkoutMarketingConsent !== undefined ? checkoutMarketingConsent : false
                 });
                 if (typeof initCustomerAuthSession === 'function') {
                     initCustomerAuthSession();
@@ -2125,6 +2129,9 @@ async function handleCustomerRegisterSubmit() {
         return;
     }
 
+    const marketingCheckbox = document.getElementById('authMarketingCheckbox');
+    const marketingWhatsApp = marketingCheckbox ? Boolean(marketingCheckbox.checked) : false;
+
     if (nameErr) nameErr.classList.add('display-none');
     if (btn) {
         btn.disabled = true;
@@ -2132,7 +2139,7 @@ async function handleCustomerRegisterSubmit() {
     }
 
     try {
-        const res = await CustomerAuth.registerCustomer(pendingAuthPhone, name);
+        const res = await CustomerAuth.registerCustomer(pendingAuthPhone, name, marketingWhatsApp);
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<span>COMEÇAR A PEDIR 🍕</span>';

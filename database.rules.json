@@ -19,6 +19,16 @@
     },
     "customers": {
       ".read": true,
+      ".write": true,
+      ".indexOn": ["marketingWhatsApp", "phone", "normalizedPhone", "totalOrders", "createdAt"]
+    },
+    "campaigns": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["createdAt", "status", "targetAudience"]
+    },
+    "settings": {
+      ".read": true,
       ".write": true
     }
   }

@@ -1,17 +1,20 @@
 /**
  * ==============================================================================
- * FINA MASSA PIZZARIA — GERENCIADOR DE CLIENTES (CUSTOMERS MANAGER)
+ * FINA MASSA PIZZARIA — GERENCIADOR DE CLIENTES & CRM
  * ==============================================================================
- * Gerenciamento centralizado de clientes, histórico de pedidos, busca
- * inteligente e integração com o módulo de pedidos manuais.
+ * Central de CRM, métricas de fidelização, segmentação comportamental,
+ * histórico de pedidos com ticket médio, consentimento WhatsApp (LGPD)
+ * e exportação de clientes em CSV.
+ * ==============================================================================
  */
 
 let allCustomersMap = {};
 let allCustomersList = [];
 let customerSearchFilter = '';
+let customerActiveFilter = 'all'; // all, bought, never_bought, new_30d, inactive_30d, inactive_60d, frequent, authorized, refused
 let currentViewingCustomerPhone = null;
 
-// Normaliza texto para busca insensivel a maiusculas, minusculas e acentos
+// Normaliza texto para busca insensível a maiúsculas, minúsculas e acentos
 function normalizeCustomerText(str) {
     if (!str) return '';
     return String(str)
@@ -22,11 +25,11 @@ function normalizeCustomerText(str) {
 }
 
 /* ==========================================================================
-   Inicializacao e Carregamento de Clientes
+   Inicialização e Carregamento de Clientes
    ========================================================================== */
 function initCustomersSync() {
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-        // Listener em menu/customers (100% garantido por regras)
+        // Listener em menu/customers
         firebase.database().ref('menu/customers').on('value', (snapshot) => {
             const data = snapshot.val() || {};
             allCustomersMap = { ...allCustomersMap, ...data };
@@ -51,11 +54,11 @@ function initCustomersSync() {
     }
 }
 
-// Constroi a lista combinando Firebase e o historico de /orders
+// Constrói a lista combinando Firebase e o histórico de /orders
 function buildFullCustomersList() {
     const map = { ...allCustomersMap };
 
-    // Varre pedidos da memoria para incluir clientes historicos
+    // Varre pedidos da memória para incluir clientes históricos
     if (typeof orders !== 'undefined' && Array.isArray(orders)) {
         orders.forEach(order => {
             if (!order || !order.clientPhone || order.clientPhone === 'Mesa / Salão') return;
@@ -75,7 +78,10 @@ function buildFullCustomersList() {
                     createdAt: order.timestamp || order.id || Date.now(),
                     lastOrderId: order.id,
                     lastOrderDate: order.date || '',
-                    ordersCount: 1
+                    lastOrderAt: order.timestamp || null,
+                    ordersCount: 1,
+                    totalSpent: Number(order.total || 0),
+                    marketingWhatsApp: false
                 };
             }
         });
@@ -83,7 +89,7 @@ function buildFullCustomersList() {
 
     allCustomersList = Object.values(map);
 
-    // Calcula quantidade total de pedidos para cada cliente
+    // Calcula quantidade total de pedidos, total gasto e ticket médio
     if (typeof orders !== 'undefined' && Array.isArray(orders)) {
         allCustomersList.forEach(cust => {
             const cleanP = String(cust.phone || cust.id).replace(/\D/g, '');
@@ -92,47 +98,139 @@ function buildFullCustomersList() {
                 const oP = String(o.clientPhone).replace(/\D/g, '');
                 return oP === cleanP || (cust.name && o.clientName && normalizeCustomerText(o.clientName) === normalizeCustomerText(cust.name));
             });
-            cust.ordersCount = custOrders.length;
+
+            cust.ordersCount = custOrders.length || cust.totalOrders || 0;
+
             if (custOrders.length > 0) {
                 custOrders.sort((a, b) => (Number(b.timestamp || b.id) || 0) - (Number(a.timestamp || a.id) || 0));
                 cust.lastOrderDate = custOrders[0].date || cust.lastOrderDate || '';
                 cust.lastOrderId = custOrders[0].id || cust.lastOrderId;
+                cust.lastOrderAt = custOrders[0].timestamp || cust.lastOrderAt || null;
+
+                let sum = 0;
+                custOrders.forEach(o => sum += (Number(o.total) || 0));
+                cust.totalSpent = Math.round(sum * 100) / 100;
+            } else if (cust.totalSpent !== undefined) {
+                cust.totalSpent = Number(cust.totalSpent) || 0;
+            } else {
+                cust.totalSpent = 0;
             }
+
+            // Ticket Médio
+            cust.averageTicket = cust.ordersCount > 0 ? (cust.totalSpent / cust.ordersCount) : 0;
+            // Booleano estrito para marketingWhatsApp
+            cust.marketingWhatsApp = cust.marketingWhatsApp === true;
         });
     }
 
-    // Ordena por ordem alfabetica
+    // Ordena por ordem alfabética por padrão
     allCustomersList.sort((a, b) => {
         return (normalizeCustomerText(a.name) || '').localeCompare(normalizeCustomerText(b.name) || '');
     });
 }
 
 /* ==========================================================================
-   Renderizacao da Secao "Clientes" no Painel
+   Renderização da Seção "Clientes / CRM" no Painel
    ========================================================================== */
 function renderCustomersManager() {
     buildFullCustomersList();
 
     const tbody = document.getElementById('customersTableBody');
     const emptyState = document.getElementById('emptyCustomersState');
-    const totalCountEl = document.getElementById('customersTotalCountHeader');
-    const withOrdersCountEl = document.getElementById('customersWithOrdersCount');
 
-    if (totalCountEl) totalCountEl.textContent = allCustomersList.length;
-    if (withOrdersCountEl) {
-        const withOrders = allCustomersList.filter(c => (c.ordersCount || 0) > 0).length;
-        withOrdersCountEl.textContent = withOrders;
-    }
+    // Indicadores do CRM
+    const now = Date.now();
+    const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = now - (60 * 24 * 60 * 60 * 1000);
+
+    const totalCount = allCustomersList.length;
+    const new30dCount = allCustomersList.filter(c => Number(c.createdAt || 0) >= thirtyDaysAgo).length;
+
+    // Clientes ativos: compraram nos últimos 30 dias
+    const activeCount = allCustomersList.filter(c => {
+        const lastTime = Number(c.lastOrderAt || 0);
+        return lastTime > 0 && lastTime >= thirtyDaysAgo;
+    }).length;
+
+    // Clientes inativos: sem pedidos nos últimos 30 dias (ou nunca compraram)
+    const inactiveCount = allCustomersList.filter(c => {
+        const lastTime = Number(c.lastOrderAt || 0);
+        return lastTime === 0 || lastTime < thirtyDaysAgo;
+    }).length;
+
+    // WhatsApp Autorizado e % da base
+    const authorizedCount = allCustomersList.filter(c => c.marketingWhatsApp === true).length;
+    const authorizedPercent = totalCount > 0 ? Math.round((authorizedCount / totalCount) * 100) : 0;
+
+    // Compradores frequentes (3+ pedidos)
+    const frequentCount = allCustomersList.filter(c => (c.ordersCount || 0) >= 3).length;
+
+    // Atualiza cards de métricas na tela
+    const elTotal = document.getElementById('crmStatTotal');
+    const elNew = document.getElementById('crmStatNew');
+    const elActive = document.getElementById('crmStatActive');
+    const elInactive = document.getElementById('crmStatInactive');
+    const elAuthorized = document.getElementById('crmStatAuthorized');
+    const elFrequent = document.getElementById('crmStatFrequent');
+
+    if (elTotal) elTotal.textContent = totalCount;
+    if (elNew) elNew.textContent = new30dCount;
+    if (elActive) elActive.textContent = activeCount;
+    if (elInactive) elInactive.textContent = inactiveCount;
+    if (elAuthorized) elAuthorized.textContent = `${authorizedCount} (${authorizedPercent}%)`;
+    if (elFrequent) elFrequent.textContent = frequentCount;
+
+    // Atualiza contadores nas abas/pills de segmentação
+    updateCrmFilterPillCounters();
 
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    // Aplica busca por texto e filtro ativo
     const query = normalizeCustomerText(customerSearchFilter);
     let filtered = allCustomersList;
 
+    // Filtro comportamental
+    switch (customerActiveFilter) {
+        case 'bought':
+            filtered = filtered.filter(c => (c.ordersCount || 0) > 0);
+            break;
+        case 'never_bought':
+            filtered = filtered.filter(c => (c.ordersCount || 0) === 0);
+            break;
+        case 'new_30d':
+            filtered = filtered.filter(c => Number(c.createdAt || 0) >= thirtyDaysAgo);
+            break;
+        case 'inactive_30d':
+            filtered = filtered.filter(c => {
+                const lastTime = Number(c.lastOrderAt || 0);
+                return lastTime === 0 || lastTime < thirtyDaysAgo;
+            });
+            break;
+        case 'inactive_60d':
+            filtered = filtered.filter(c => {
+                const lastTime = Number(c.lastOrderAt || 0);
+                return lastTime === 0 || lastTime < sixtyDaysAgo;
+            });
+            break;
+        case 'frequent':
+            filtered = filtered.filter(c => (c.ordersCount || 0) >= 3);
+            break;
+        case 'authorized':
+            filtered = filtered.filter(c => c.marketingWhatsApp === true);
+            break;
+        case 'refused':
+            filtered = filtered.filter(c => c.marketingWhatsApp !== true);
+            break;
+        case 'all':
+        default:
+            break;
+    }
+
+    // Busca textual
     if (query) {
         const queryDigits = query.replace(/\D/g, '');
-        filtered = allCustomersList.filter(c => {
+        filtered = filtered.filter(c => {
             const nameNorm = normalizeCustomerText(c.name);
             const phoneDigits = String(c.phone || c.id || '').replace(/\D/g, '');
             const neighNorm = normalizeCustomerText(c.neighborhood);
@@ -164,8 +262,22 @@ function renderCustomersManager() {
             : (cust.neighborhood || 'Endereço não informado');
 
         const ordersBadge = (cust.ordersCount && cust.ordersCount > 0)
-            ? `<span class="status-badge" style="background: rgba(37, 211, 102, 0.15); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.35); font-weight: 700;">${cust.ordersCount} pedido(s)</span>`
-            : `<span class="status-badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted);">Sem pedidos</span>`;
+            ? `<span class="crm-badge crm-badge-success">${cust.ordersCount} pedido(s)</span>`
+            : `<span class="crm-badge crm-badge-secondary">0 pedidos</span>`;
+
+        const marketingBadge = cust.marketingWhatsApp === true
+            ? `<span class="crm-badge crm-badge-success" title="Cliente autorizou promoções no WhatsApp"><span class="material-symbols-rounded" style="font-size: 13px; vertical-align: middle;">check_circle</span> Sim</span>`
+            : `<span class="crm-badge crm-badge-danger" title="Cliente não autorizou ou não optou"><span class="material-symbols-rounded" style="font-size: 13px; vertical-align: middle;">cancel</span> Não</span>`;
+
+        const ticketMedioFormatted = cust.averageTicket > 0
+            ? `R$ ${cust.averageTicket.toFixed(2).replace('.', ',')}`
+            : 'R$ 0,00';
+
+        const totalSpentFormatted = cust.totalSpent > 0
+            ? `R$ ${cust.totalSpent.toFixed(2).replace('.', ',')}`
+            : 'R$ 0,00';
+
+        const registerDate = cust.createdAt ? new Date(cust.createdAt).toLocaleDateString('pt-BR') : '-';
 
         tr.innerHTML = `
             <td style="padding: 12px 14px; font-weight: 700; color: var(--text-main);">
@@ -175,7 +287,7 @@ function renderCustomersManager() {
                     </div>
                     <div>
                         <div>${cust.name || 'Sem Nome'}</div>
-                        <small style="color: var(--text-muted); font-size: 11px;">Cadastrado</small>
+                        <small style="color: var(--text-muted); font-size: 11px;">Desde: ${registerDate}</small>
                     </div>
                 </div>
             </td>
@@ -185,14 +297,23 @@ function renderCustomersManager() {
                     <span>${formattedPhone}</span>
                 </a>
             </td>
-            <td style="padding: 12px 14px; color: var(--text-light); font-size: 12.5px; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <td style="padding: 12px 14px; color: var(--text-light); font-size: 12.5px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 ${addressText}
             </td>
             <td style="padding: 12px 14px; color: var(--text-muted); font-size: 12px;">
-                ${cust.lastOrderDate ? `Último: ${cust.lastOrderDate}` : 'Recente'}
+                ${cust.lastOrderDate ? `Último: ${cust.lastOrderDate}` : 'Sem compras'}
             </td>
             <td style="padding: 12px 14px; text-align: center;">
                 ${ordersBadge}
+            </td>
+            <td style="padding: 12px 14px; text-align: right; font-weight: 700; color: var(--text-main); font-size: 12.5px;">
+                ${totalSpentFormatted}
+            </td>
+            <td style="padding: 12px 14px; text-align: right; font-weight: 600; color: #f5a623; font-size: 12.5px;">
+                ${ticketMedioFormatted}
+            </td>
+            <td style="padding: 12px 14px; text-align: center;">
+                ${marketingBadge}
             </td>
             <td style="padding: 12px 14px; text-align: center;">
                 <div style="display: flex; justify-content: center; gap: 6px;">
@@ -218,8 +339,115 @@ function handleCustomersSearchFilter(query) {
     renderCustomersManager();
 }
 
+function setCrmFilter(filterKey) {
+    customerActiveFilter = filterKey;
+    document.querySelectorAll('.crm-filter-pill').forEach(el => {
+        if (el.getAttribute('data-filter') === filterKey) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+    renderCustomersManager();
+}
+
+function updateCrmFilterPillCounters() {
+    const now = Date.now();
+    const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = now - (60 * 24 * 60 * 60 * 1000);
+
+    const counts = {
+        all: allCustomersList.length,
+        bought: allCustomersList.filter(c => (c.ordersCount || 0) > 0).length,
+        never_bought: allCustomersList.filter(c => (c.ordersCount || 0) === 0).length,
+        new_30d: allCustomersList.filter(c => Number(c.createdAt || 0) >= thirtyDaysAgo).length,
+        inactive_30d: allCustomersList.filter(c => {
+            const lastTime = Number(c.lastOrderAt || 0);
+            return lastTime === 0 || lastTime < thirtyDaysAgo;
+        }).length,
+        inactive_60d: allCustomersList.filter(c => {
+            const lastTime = Number(c.lastOrderAt || 0);
+            return lastTime === 0 || lastTime < sixtyDaysAgo;
+        }).length,
+        frequent: allCustomersList.filter(c => (c.ordersCount || 0) >= 3).length,
+        authorized: allCustomersList.filter(c => c.marketingWhatsApp === true).length,
+        refused: allCustomersList.filter(c => c.marketingWhatsApp !== true).length
+    };
+
+    Object.keys(counts).forEach(key => {
+        const badge = document.getElementById(`crmCountBadge_${key}`);
+        if (badge) badge.textContent = counts[key];
+    });
+}
+
 /* ==========================================================================
-   Modal de Detalhes & Historico do Cliente
+   Exportação de Clientes em CSV (Compatível Excel com UTF-8 BOM)
+   ========================================================================== */
+function exportCustomersCSV() {
+    buildFullCustomersList();
+
+    if (allCustomersList.length === 0) {
+        if (typeof showToast === 'function') showToast('Nenhum cliente disponível para exportação.', 'warning');
+        return;
+    }
+
+    const headers = [
+        'Nome',
+        'WhatsApp',
+        'Data de Cadastro',
+        'Ultimo Pedido',
+        'Qtd Pedidos',
+        'Total Gasto (R$)',
+        'Ticket Medio (R$)',
+        'Endereco',
+        'Bairro',
+        'Autorizacao WhatsApp (LGPD)'
+    ];
+
+    const rows = allCustomersList.map(c => {
+        const cleanPhone = String(c.phone || c.id || '').replace(/\D/g, '');
+        const regDate = c.createdAt ? new Date(c.createdAt).toLocaleDateString('pt-BR') : '';
+        const lastOrder = c.lastOrderDate || (c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString('pt-BR') : 'Nunca');
+        const ordersCount = c.ordersCount || 0;
+        const totalSpent = (c.totalSpent || 0).toFixed(2).replace('.', ',');
+        const ticketMedio = (c.averageTicket || 0).toFixed(2).replace('.', ',');
+        const address = `${c.street || ''} ${c.number || ''}`.trim();
+        const bairro = c.neighborhood || '';
+        const consent = c.marketingWhatsApp === true ? 'SIM' : 'NAO';
+
+        return [
+            `"${(c.name || '').replace(/"/g, '""')}"`,
+            `"${cleanPhone}"`,
+            `"${regDate}"`,
+            `"${lastOrder}"`,
+            ordersCount,
+            `"${totalSpent}"`,
+            `"${ticketMedio}"`,
+            `"${address.replace(/"/g, '""')}"`,
+            `"${bairro.replace(/"/g, '""')}"`,
+            `"${consent}"`
+        ].join(';');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `clientes_fina_massa_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (typeof showToast === 'function') {
+        showToast(`Exportação concluída com ${allCustomersList.length} clientes!`, 'success');
+    }
+}
+
+/* ==========================================================================
+   Modal de Detalhes & Histórico do Cliente
    ========================================================================== */
 function openCustomerDetailsModal(cleanPhone) {
     cleanPhone = String(cleanPhone || '').replace(/\D/g, '');
@@ -238,6 +466,7 @@ function openCustomerDetailsModal(cleanPhone) {
     const phoneEl = document.getElementById('custDetailsPhone');
     const addressEl = document.getElementById('custDetailsAddress');
     const ordersCountEl = document.getElementById('custDetailsOrdersCount');
+    const marketingConsentEl = document.getElementById('custDetailsMarketingConsent');
 
     if (nameEl) nameEl.textContent = customer.name || 'Cliente';
     if (phoneEl) {
@@ -247,6 +476,14 @@ function openCustomerDetailsModal(cleanPhone) {
                 <span>${customer.phone || cleanPhone}</span>
             </a>
         `;
+    }
+
+    if (marketingConsentEl) {
+        if (customer.marketingWhatsApp === true) {
+            marketingConsentEl.innerHTML = `<span class="crm-badge crm-badge-success"><span class="material-symbols-rounded" style="font-size: 14px; vertical-align: middle;">check_circle</span> Autorizado receber promoções via WhatsApp</span>`;
+        } else {
+            marketingConsentEl.innerHTML = `<span class="crm-badge crm-badge-danger"><span class="material-symbols-rounded" style="font-size: 14px; vertical-align: middle;">cancel</span> Não autorizou promoções no WhatsApp</span>`;
+        }
     }
 
     const fullAddr = customer.street 
@@ -272,16 +509,19 @@ function openCustomerDetailsModal(cleanPhone) {
     }
 
     const totalOrdersCount = custOrders.length || customer.totalOrders || 0;
+    const averageTicket = totalOrdersCount > 0 ? (totalSpent / totalOrdersCount) : 0;
     const lastOrderText = (custOrders.length > 0 && custOrders[0].date) 
         ? `${custOrders[0].date} ${custOrders[0].time ? 'às ' + custOrders[0].time : ''}` 
         : (customer.lastOrderDate || (customer.lastOrderAt ? new Date(customer.lastOrderAt).toLocaleDateString('pt-BR') : 'Nunca'));
 
     const ordersTotalEl = document.getElementById('custDetailsOrdersTotal');
     const spentTotalEl = document.getElementById('custDetailsSpentTotal');
+    const avgTicketEl = document.getElementById('custDetailsAvgTicket');
     const lastOrderEl = document.getElementById('custDetailsLastOrder');
 
     if (ordersTotalEl) ordersTotalEl.textContent = totalOrdersCount;
     if (spentTotalEl) spentTotalEl.textContent = `R$ ${totalSpent.toFixed(2).replace('.', ',')}`;
+    if (avgTicketEl) avgTicketEl.textContent = `R$ ${averageTicket.toFixed(2).replace('.', ',')}`;
     if (lastOrderEl) lastOrderEl.textContent = lastOrderText;
     if (ordersCountEl) ordersCountEl.textContent = `${totalOrdersCount} pedido(s) realizados`;
 
@@ -377,7 +617,7 @@ function repeatOrderFromCustomerHistory(orderId, cleanPhone) {
 }
 
 /* ==========================================================================
-   Modal de Cadastro / Edicao de Cliente
+   Modal de Cadastro / Edição de Cliente
    ========================================================================== */
 function openCustomerEditModal(cleanPhone) {
     const modal = document.getElementById('customerEditModal');
@@ -390,6 +630,7 @@ function openCustomerEditModal(cleanPhone) {
     const numberInput = document.getElementById('custEditNumber');
     const compInput = document.getElementById('custEditComplement');
     const bairroSelect = document.getElementById('custEditBairro');
+    const marketingCheckbox = document.getElementById('custEditMarketingCheckbox');
 
     if (bairroSelect) {
         bairroSelect.innerHTML = '<option value="">-- Selecione o Bairro --</option>';
@@ -411,7 +652,7 @@ function openCustomerEditModal(cleanPhone) {
         cleanPhone = String(cleanPhone).replace(/\D/g, '');
         const cust = allCustomersList.find(c => String(c.phone || c.id).replace(/\D/g, '') === cleanPhone);
         if (cust) {
-            if (titleEl) titleEl.innerHTML = `<span class="material-symbols-rounded">edit</span> <span>Editar Cliente</span>`;
+            if (titleEl) titleEl.innerHTML = `<span class="material-symbols-rounded">edit</span> <span>Editar Cliente / CRM</span>`;
             if (phoneInput) {
                 phoneInput.value = cust.phone || cleanPhone;
                 phoneInput.setAttribute('data-original-phone', cleanPhone);
@@ -420,6 +661,7 @@ function openCustomerEditModal(cleanPhone) {
             if (streetInput) streetInput.value = cust.street || '';
             if (numberInput) numberInput.value = cust.number || '';
             if (compInput) compInput.value = cust.complement || '';
+            if (marketingCheckbox) marketingCheckbox.checked = cust.marketingWhatsApp === true;
 
             if (bairroSelect && (cust.bairroKey || cust.neighborhood)) {
                 for (let i = 0; i < bairroSelect.options.length; i++) {
@@ -442,6 +684,7 @@ function openCustomerEditModal(cleanPhone) {
         if (numberInput) numberInput.value = '';
         if (compInput) compInput.value = '';
         if (bairroSelect) bairroSelect.selectedIndex = 0;
+        if (marketingCheckbox) marketingCheckbox.checked = true;
     }
 
     modal.classList.remove('display-none');
@@ -469,10 +712,12 @@ function saveCustomerEditForm(event) {
     const numberInput = document.getElementById('custEditNumber');
     const compInput = document.getElementById('custEditComplement');
     const bairroSelect = document.getElementById('custEditBairro');
+    const marketingCheckbox = document.getElementById('custEditMarketingCheckbox');
 
     const rawPhone = phoneInput ? phoneInput.value.trim() : '';
     const cleanPhone = rawPhone.replace(/\D/g, '');
     const name = nameInput ? nameInput.value.trim() : '';
+    const marketingConsent = marketingCheckbox ? Boolean(marketingCheckbox.checked) : false;
 
     if (!name) {
         if (typeof showToast === 'function') showToast('Informe o nome do cliente!', 'error');
@@ -490,7 +735,10 @@ function saveCustomerEditForm(event) {
     const bairroKey = selectedBairroOpt ? selectedBairroOpt.value : '';
     const neighborhood = selectedBairroOpt ? (selectedBairroOpt.getAttribute('data-name') || selectedBairroOpt.text) : '';
 
+    const existingData = allCustomersMap[cleanPhone] || {};
+
     const customerData = {
+        ...existingData,
         id: cleanPhone,
         name: name,
         phone: rawPhone,
@@ -499,11 +747,13 @@ function saveCustomerEditForm(event) {
         complement: (compInput && compInput.value) ? compInput.value.trim() : '',
         neighborhood: (neighborhood && neighborhood !== '-- Selecione o Bairro --') ? neighborhood : '',
         bairroKey: bairroKey || '',
+        marketingWhatsApp: marketingConsent,
+        marketingConsentAt: marketingConsent ? (existingData.marketingConsentAt || Date.now()) : null,
         updatedAt: Date.now()
     };
 
-    // Atualiza imediatamente localmente para feedback instantaneo
-    allCustomersMap[cleanPhone] = { ...(allCustomersMap[cleanPhone] || {}), ...customerData };
+    // Atualiza imediatamente localmente para feedback instantâneo
+    allCustomersMap[cleanPhone] = customerData;
     buildFullCustomersList();
     renderCustomersManager();
     closeCustomerEditModal();
@@ -520,4 +770,3 @@ function saveCustomerEditForm(event) {
 
     return false;
 }
-

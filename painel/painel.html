@@ -79,7 +79,11 @@
                 </a>
                 <a href="#" class="menu-item" id="btnNavCustomers" onclick="switchSection('customers')">
                     <span class="material-symbols-rounded">group</span>
-                    <span>Clientes</span>
+                    <span>Clientes / CRM</span>
+                </a>
+                <a href="#" class="menu-item" id="btnNavCampaigns" onclick="switchSection('campaigns')" style="color: #25d366; font-weight: 700;">
+                    <span class="material-symbols-rounded">campaign</span>
+                    <span>Campanhas WhatsApp</span>
                 </a>
                 <a href="#" class="menu-item" id="btnNavTables" onclick="switchSection('tables')" style="color: #f5a623;">
                     <span class="material-symbols-rounded">table_restaurant</span>
@@ -293,13 +297,13 @@
                 </div>
             </div>
 
-            <!-- SECTION CUSTOMERS: GERENCIADOR DE CLIENTES -->
+            <!-- SECTION CUSTOMERS: CRM DE CLIENTES (FINA MASSA PIZZARIA) -->
             <div id="section-customers" class="display-none">
                 <!-- Header -->
                 <header class="content-header">
                     <div class="header-title">
-                        <h1>Gerenciador de Clientes</h1>
-                        <p>Consulte cadastros, histórico de pedidos e gerencie a base de clientes da Fina Massa Pizzaria</p>
+                        <h1>Clientes / CRM</h1>
+                        <p>Gestão completa da base de clientes, ticket médio, histórico e fidelização da Fina Massa Pizzaria</p>
                     </div>
                     
                     <div class="header-actions">
@@ -308,6 +312,11 @@
                             <input type="text" id="customersSearchInput" placeholder="Buscar por nome ou telefone..." oninput="handleCustomersSearchFilter(this.value)" style="width: 100%; padding: 8px 12px 8px 34px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-size: 13px;">
                         </div>
 
+                        <button type="button" class="btn-refresh" onclick="exportCustomersCSV()" title="Exportar Clientes em Planilha CSV" style="background: rgba(37, 211, 102, 0.15); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.35); padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px;">
+                            <span class="material-symbols-rounded" style="font-size: 18px;">download</span>
+                            <span>Exportar CSV</span>
+                        </button>
+
                         <button class="btn-new-manual-order" onclick="openCustomerEditModal()" title="Cadastrar Novo Cliente Diretamente">
                             <span class="material-symbols-rounded">person_add</span>
                             <span>+ NOVO CLIENTE</span>
@@ -315,40 +324,118 @@
                     </div>
                 </header>
 
-                <!-- Quick Indicators -->
-                <section class="indicators-grid" style="margin-bottom: 20px;">
+                <!-- CRM Metric Indicators (6 Cards) -->
+                <section class="crm-indicators-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 20px;">
                     <div class="indicator-card">
                         <div class="card-icon bg-purple" style="background: rgba(156, 39, 176, 0.15); color: #ce93d8;">
                             <span class="material-symbols-rounded">group</span>
                         </div>
                         <div class="card-data">
                             <span class="label">Total de Clientes</span>
-                            <h3 id="customersTotalCountHeader">0</h3>
+                            <h3 id="crmStatTotal">0</h3>
                         </div>
                     </div>
                     
+                    <div class="indicator-card">
+                        <div class="card-icon bg-blue" style="background: rgba(33, 150, 243, 0.15); color: #64b5f6;">
+                            <span class="material-symbols-rounded">person_add</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">Novos (30 dias)</span>
+                            <h3 id="crmStatNew">0</h3>
+                        </div>
+                    </div>
+
                     <div class="indicator-card">
                         <div class="card-icon bg-green" style="background: rgba(46, 125, 50, 0.15); color: #81c784;">
                             <span class="material-symbols-rounded">shopping_bag</span>
                         </div>
                         <div class="card-data">
-                            <span class="label">Clientes com Pedidos</span>
-                            <h3 id="customersWithOrdersCount">0</h3>
+                            <span class="label">Clientes Ativos</span>
+                            <h3 id="crmStatActive">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="indicator-card">
+                        <div class="card-icon bg-red" style="background: rgba(239, 83, 80, 0.15); color: #ef5350;">
+                            <span class="material-symbols-rounded">snooze</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">Inativos (+30d)</span>
+                            <h3 id="crmStatInactive">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="indicator-card">
+                        <div class="card-icon bg-green" style="background: rgba(37, 211, 102, 0.15); color: #25d366;">
+                            <span class="material-symbols-rounded">mark_chat_read</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">WhatsApp Autorizado</span>
+                            <h3 id="crmStatAuthorized">0 (0%)</h3>
+                        </div>
+                    </div>
+
+                    <div class="indicator-card">
+                        <div class="card-icon bg-gold" style="background: rgba(245, 166, 35, 0.15); color: #f5a623;">
+                            <span class="material-symbols-rounded">star</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">Frequentes (3+)</span>
+                            <h3 id="crmStatFrequent">0</h3>
                         </div>
                     </div>
                 </section>
+
+                <!-- CRM Segmentation Filters Bar (Pills) -->
+                <div class="crm-filters-container" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-right: 4px; display: flex; align-items: center; gap: 4px;">
+                        <span class="material-symbols-rounded" style="font-size: 16px;">filter_alt</span>
+                        Segmentar:
+                    </span>
+                    <button type="button" class="crm-filter-pill active" data-filter="all" onclick="setCrmFilter('all')">
+                        Todos <span class="crm-pill-badge" id="crmCountBadge_all">0</span>
+                    </button>
+                    <button type="button" class="crm-filter-pill" data-filter="bought" onclick="setCrmFilter('bought')">
+                        Já Compraram <span class="crm-pill-badge" id="crmCountBadge_bought">0</span>
+                    </button>
+                    <button type="button" class="crm-filter-pill" data-filter="never_bought" onclick="setCrmFilter('never_bought')">
+                        Nunca Compraram <span class="crm-pill-badge" id="crmCountBadge_never_bought">0</span>
+                    </button>
+                    <button type="button" class="crm-filter-pill" data-filter="new_30d" onclick="setCrmFilter('new_30d')">
+                        Novos (30d) <span class="crm-pill-badge" id="crmCountBadge_new_30d">0</span>
+                    </button>
+                    <button type="button" class="crm-filter-pill" data-filter="inactive_30d" onclick="setCrmFilter('inactive_30d')">
+                        Inativos (+30d) <span class="crm-pill-badge" id="crmCountBadge_inactive_30d">0</span>
+                    </button>
+                    <button type="button" class="crm-filter-pill" data-filter="inactive_60d" onclick="setCrmFilter('inactive_60d')">
+                        Inativos (+60d) <span class="crm-pill-badge" id="crmCountBadge_inactive_60d">0</span>
+                    </button>
+                    <button type="button" class="crm-filter-pill" data-filter="frequent" onclick="setCrmFilter('frequent')">
+                        Frequentes (3+) <span class="crm-pill-badge" id="crmCountBadge_frequent">0</span>
+                    </button>
+                    <button type="button" class="crm-filter-pill" data-filter="authorized" onclick="setCrmFilter('authorized')">
+                        WhatsApp Autorizado <span class="crm-pill-badge" id="crmCountBadge_authorized">0</span>
+                    </button>
+                    <button type="button" class="crm-filter-pill" data-filter="refused" onclick="setCrmFilter('refused')">
+                        WhatsApp Recusado <span class="crm-pill-badge" id="crmCountBadge_refused">0</span>
+                    </button>
+                </div>
 
                 <!-- Customers List Table -->
                 <div class="section-card" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; padding: 0;">
                     <div style="overflow-x: auto;">
                         <table style="width: 100%; border-collapse: collapse; text-align: left;" id="customersTable">
                             <thead>
-                                <tr style="background: var(--bg-card); border-bottom: 1px solid var(--border-color); font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                                <tr style="background: var(--bg-card); border-bottom: 1px solid var(--border-color); font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
                                     <th style="padding: 12px 14px;">Cliente</th>
                                     <th style="padding: 12px 14px;">WhatsApp / Telefone</th>
                                     <th style="padding: 12px 14px;">Endereço / Bairro</th>
                                     <th style="padding: 12px 14px;">Último Pedido</th>
                                     <th style="padding: 12px 14px; text-align: center;">Pedidos</th>
+                                    <th style="padding: 12px 14px; text-align: right;">Total Gasto</th>
+                                    <th style="padding: 12px 14px; text-align: right;">Ticket Médio</th>
+                                    <th style="padding: 12px 14px; text-align: center;">Mkt WhatsApp</th>
                                     <th style="padding: 12px 14px; text-align: center;">Ações</th>
                                 </tr>
                             </thead>
@@ -362,6 +449,113 @@
                         <span class="material-symbols-rounded" style="font-size: 48px; color: var(--text-muted);">person_off</span>
                         <h3 style="margin: 10px 0 6px 0; color: var(--text-main);">Nenhum cliente encontrado</h3>
                         <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Nenhum cadastro corresponde ao filtro ou ainda não há clientes cadastrados.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION CAMPAIGNS: CAMPANHAS WHATSAPP -->
+            <div id="section-campaigns" class="display-none">
+                <!-- Header -->
+                <header class="content-header">
+                    <div class="header-title">
+                        <h1>Campanhas WhatsApp</h1>
+                        <p>Crie promoções, segmente clientes com consentimento e envie mensagens personalizadas via WhatsApp</p>
+                    </div>
+                    
+                    <div class="header-actions">
+                        <button class="btn-new-manual-order" onclick="openNewCampaignModal()" style="background: linear-gradient(135deg, #25d366, #128c7e); color: #000; font-weight: 800; border: none; padding: 9px 18px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <span class="material-symbols-rounded">add_circle</span>
+                            <span>+ NOVA CAMPANHA</span>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Campaign Indicators (6 Métricas Dashboard de Campanhas) -->
+                <section class="crm-indicators-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px;">
+                    <div class="indicator-card">
+                        <div class="card-icon bg-green" style="background: rgba(37, 211, 102, 0.15); color: #25d366;">
+                            <span class="material-symbols-rounded">campaign</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">Total de Campanhas</span>
+                            <h3 id="campStatTotalCampaigns">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="indicator-card">
+                        <div class="card-icon bg-gold" style="background: rgba(245, 166, 35, 0.15); color: #f5a623;">
+                            <span class="material-symbols-rounded">verified_user</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">Clientes Alcançáveis</span>
+                            <h3 id="campStatReachableClients">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="indicator-card">
+                        <div class="card-icon bg-purple" style="background: rgba(156, 39, 176, 0.15); color: #ce93d8;">
+                            <span class="material-symbols-rounded">send</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">Disparos Realizados</span>
+                            <h3 id="campStatDispatchesSent">0</h3>
+                        </div>
+                    </div>
+
+                    <div class="indicator-card">
+                        <div class="card-icon" style="background: rgba(66, 133, 244, 0.15); color: #8ab4f8;">
+                            <span class="material-symbols-rounded">percent</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">Taxa de Envio</span>
+                            <h3 id="campStatSendRate">0%</h3>
+                        </div>
+                    </div>
+
+                    <div class="indicator-card">
+                        <div class="card-icon" style="background: rgba(0, 189, 174, 0.15); color: #00bdae;">
+                            <span class="material-symbols-rounded">done_all</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">Taxa de Entrega</span>
+                            <h3 id="campStatDeliveryRate">0%</h3>
+                        </div>
+                    </div>
+
+                    <div class="indicator-card">
+                        <div class="card-icon bg-red" style="background: rgba(239, 83, 80, 0.15); color: #ef5350;">
+                            <span class="material-symbols-rounded">error_outline</span>
+                        </div>
+                        <div class="card-data">
+                            <span class="label">Erros de Disparo</span>
+                            <h3 id="campStatErrorCount">0</h3>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Campaigns Table -->
+                <div class="section-card" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; padding: 0;">
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left;" id="campaignsTable">
+                            <thead>
+                                <tr style="background: var(--bg-card); border-bottom: 1px solid var(--border-color); font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                                    <th style="padding: 12px 14px;">Campanha</th>
+                                    <th style="padding: 12px 14px;">Data de Criação</th>
+                                    <th style="padding: 12px 14px;">Progresso de Envio</th>
+                                    <th style="padding: 12px 14px; text-align: center;">Status</th>
+                                    <th style="padding: 12px 14px; text-align: center;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campaignsTableBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="emptyCampaignsState" class="empty-state display-none" style="padding: 40px 20px; text-align: center;">
+                        <span class="material-symbols-rounded" style="font-size: 48px; color: var(--text-muted);">campaign</span>
+                        <h3 style="margin: 10px 0 6px 0; color: var(--text-main);">Nenhuma campanha criada ainda</h3>
+                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Crie sua primeira campanha para se comunicar diretamente com clientes no WhatsApp.</p>
                     </div>
                 </div>
             </div>
@@ -695,6 +889,87 @@
                         <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
                             <label for="settingsWhatsappFormatted" style="font-size: 13px; font-weight: 500; color: var(--text-light);">Número Formatado (Para exibição no site)</label>
                             <input type="text" id="settingsWhatsappFormatted" placeholder="Ex: (54) 99698-5724" style="padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main);">
+                        </div>
+                    </div>
+
+                    <!-- WhatsApp Business API & Campanhas Card (Fase 5.1) -->
+                    <div class="prices-table-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                            <h3 style="margin: 0; color: var(--text-main); font-family: var(--font-display); font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                                <span class="material-symbols-rounded" style="color: #25d366;">campaign</span>
+                                WHATSAPP BUSINESS API (CAMPANHAS)
+                            </h3>
+                            <span id="waApiStatusBadge" class="crm-badge wa-badge-pending">⚪ Não Configurado</span>
+                        </div>
+                        <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">Integração oficial Meta Graph API para disparo de campanhas automáticas em lote sem cliques manuais.</p>
+
+                        <!-- Toggle Ativar -->
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <span style="font-size: 13px; font-weight: 700; color: var(--text-main); display: block;">Ativar Disparo Automático via API</span>
+                                <small style="color: var(--text-muted); font-size: 11px;">Habilita envio em lote pelo WhatsApp Business Cloud API.</small>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="settingsWaApiEnabled" onchange="updateWhatsAppApiUIStatus()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Campos da Meta Cloud API -->
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                                <label for="settingsWaPhoneNumberId" style="font-size: 12px; font-weight: 600; color: var(--text-light);">Phone Number ID (Identificador do Número Meta)</label>
+                                <input type="text" id="settingsWaPhoneNumberId" placeholder="Ex: 100609349423711" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-size: 13px;">
+                                <small style="color: var(--text-muted); font-size: 10.5px;">Encontrado no painel da Meta for Developers &gt; WhatsApp &gt; Configuração da API.</small>
+                            </div>
+
+                            <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                                <label for="settingsWaWabaId" style="font-size: 12px; font-weight: 600; color: var(--text-light);">WhatsApp Business Account ID (WABA ID)</label>
+                                <input type="text" id="settingsWaWabaId" placeholder="Ex: 105954558914442" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-size: 13px;">
+                            </div>
+
+                            <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                                <label for="settingsWaApiToken" style="font-size: 12px; font-weight: 600; color: var(--text-light);">Token de Acesso Permanente (System User Token)</label>
+                                <div style="position: relative; display: flex; align-items: center;">
+                                    <input type="password" id="settingsWaApiToken" placeholder="EAA..." style="padding: 9px 12px; padding-right: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-size: 13px; width: 100%;">
+                                    <button type="button" onclick="togglePasswordVisibility('settingsWaApiToken')" style="position: absolute; right: 8px; border: none; background: transparent; color: var(--text-muted); cursor: pointer;">
+                                        <span class="material-symbols-rounded" style="font-size: 18px;">visibility</span>
+                                    </button>
+                                </div>
+                                <small style="color: #f5a623; font-size: 10.5px;">🔒 Proteção estrita: Token nunca é exposto a clientes ou no storefront.</small>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                                    <label for="settingsWaApiVersion" style="font-size: 12px; font-weight: 600; color: var(--text-light);">Versão da Graph API</label>
+                                    <input type="text" id="settingsWaApiVersion" value="v21.0" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-size: 13px;">
+                                </div>
+                                <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                                    <label for="settingsWaDispatchDelayMs" style="font-size: 12px; font-weight: 600; color: var(--text-light);">Intervalo entre Envios (ms)</label>
+                                    <input type="number" id="settingsWaDispatchDelayMs" value="600" min="300" max="5000" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-size: 13px;">
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                                <label for="settingsWaMenuUrl" style="font-size: 12px; font-weight: 600; color: var(--text-light);">URL Oficial do Cardápio ({link})</label>
+                                <input type="url" id="settingsWaMenuUrl" placeholder="https://pizzariafinamassa.com.br/" value="https://pizzariafinamassa.com.br/" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-size: 13px;">
+                                <small style="color: var(--text-muted); font-size: 10.5px;">Link dinâmico que substituirá a tag {link} em todas as mensagens das campanhas.</small>
+                            </div>
+
+                            <div class="form-group" style="display: flex; flex-direction: column; gap: 5px;">
+                                <label for="settingsWaBackendProxyUrl" style="font-size: 12px; font-weight: 600; color: var(--text-light);">URL do Backend Proxy (Opcional)</label>
+                                <input type="url" id="settingsWaBackendProxyUrl" placeholder="https://...cloudfunctions.net/sendWhatsApp" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-size: 13px;">
+                                <small style="color: var(--text-muted); font-size: 10.5px;">Se configurado, as requisições passam por Cloud Function sem expor tokens.</small>
+                            </div>
+
+                            <!-- Botão Testar Conexão -->
+                            <div style="margin-top: 6px;">
+                                <button type="button" onclick="testWhatsAppApiConnection()" class="btn-category-add" style="background: rgba(37,211,102,0.15); color: #25d366; border: 1px solid rgba(37,211,102,0.35); padding: 8px 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+                                    <span class="material-symbols-rounded" style="font-size: 16px;">wifi_tethering</span>
+                                    <span>Testar Conexão com a Meta</span>
+                                </button>
+                                <div id="waApiTestResult" style="margin-top: 8px; font-size: 12px; display: none;"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -1195,6 +1470,8 @@
     <script src="../PizzaEngine.js?v=2"></script>
     <script src="painel.js?v=22"></script>
     <script src="customers-manager.js?v=1"></script>
+    <script src="whatsapp-service.js?v=1"></script>
+    <script src="campaigns-manager.js?v=1"></script>
     <script src="manual-order.js?v=3"></script>
 
     <!-- Modal Gerenciador de Mesas (Cadastrar, Ativar, Desativar, Excluir) -->
@@ -1635,19 +1912,32 @@
             <!-- Body -->
             <div style="overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;">
                 <!-- Resumo de Métricas do Cliente -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; text-align: center;">
-                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total de Pedidos</span>
-                        <div id="custDetailsOrdersTotal" style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 10px; text-align: center;">
+                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Pedidos</span>
+                        <div id="custDetailsOrdersTotal" style="font-size: 17px; font-weight: 800; color: var(--text-main); margin-top: 4px;">0</div>
                     </div>
-                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; text-align: center;">
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 10px; text-align: center;">
                         <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Gasto</span>
-                        <div id="custDetailsSpentTotal" style="font-size: 18px; font-weight: 800; color: var(--primary); margin-top: 4px;">R$ 0,00</div>
+                        <div id="custDetailsSpentTotal" style="font-size: 17px; font-weight: 800; color: var(--primary); margin-top: 4px;">R$ 0,00</div>
                     </div>
-                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 14px; text-align: center;">
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 10px; text-align: center;">
+                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Ticket Médio</span>
+                        <div id="custDetailsAvgTicket" style="font-size: 17px; font-weight: 800; color: #f5a623; margin-top: 4px;">R$ 0,00</div>
+                    </div>
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 10px; text-align: center;">
                         <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Último Pedido</span>
-                        <div id="custDetailsLastOrder" style="font-size: 13px; font-weight: 700; color: var(--text-body); margin-top: 6px;">Nunca</div>
+                        <div id="custDetailsLastOrder" style="font-size: 12.5px; font-weight: 700; color: var(--text-body); margin-top: 6px;">Nunca</div>
                     </div>
+                </div>
+
+                <!-- Consentimento WhatsApp LGPD -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+                        <span class="material-symbols-rounded" style="font-size: 18px; color: #25d366;">chat</span>
+                        <span>Consentimento de Marketing (LGPD):</span>
+                    </div>
+                    <div id="custDetailsMarketingConsent"></div>
                 </div>
 
                 <!-- Card de Endereço & Resumo -->
@@ -1738,6 +2028,17 @@
                     </div>
                 </div>
 
+                <!-- Alternância de Autorização WhatsApp LGPD -->
+                <div style="background: rgba(37, 211, 102, 0.08); border: 1px solid rgba(37, 211, 102, 0.25); border-radius: var(--radius-sm); padding: 10px 14px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="custEditMarketingCheckbox" style="accent-color: #25d366; width: 18px; height: 18px; cursor: pointer;">
+                        <div>
+                            <strong style="color: #25d366; font-size: 13px;">Autorizar mensagens e promoções via WhatsApp (LGPD)</strong>
+                            <div style="font-size: 11.5px; color: var(--text-muted);">Permite incluir o cliente em listas de campanhas promocionais e disparos do CRM.</div>
+                        </div>
+                    </label>
+                </div>
+
                 <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 16px;">
                     <button type="button" onclick="closeCustomerEditModal()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 9px 18px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">Cancelar</button>
                     <button type="button" onclick="saveCustomerEditForm(event)" class="btn-finalize-manual-order" style="padding: 9px 22px; font-size: 13.5px;">
@@ -1746,6 +2047,338 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL DO CONSTRUTOR DE CAMPANHA WHATSAPP -->
+    <div class="modal-overlay display-none" id="newCampaignModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.82); z-index: 1260; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: var(--transition);">
+        <div class="modal-container" style="max-width: 860px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: 0 16px 50px rgba(0,0,0,0.65); overflow: hidden;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid var(--border-color); background: var(--bg-card);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="material-symbols-rounded" style="color: #25d366; font-size: 26px;">campaign</span>
+                    <div>
+                        <h3 style="color: var(--text-main); font-family: var(--font-display); font-size: 18px; margin: 0;">Nova Campanha WhatsApp</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">Configure mensagem, segmente o público com consentimento e prepare o disparo.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-modal" onclick="closeNewCampaignModal()" style="border: none; background: transparent; color: var(--text-light); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%;">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+
+            <div style="overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 18px;">
+                <div class="manual-form-row">
+                    <div class="form-group flex-2">
+                        <label style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-light); margin-bottom: 4px;">Título da Campanha <span style="color: #ef5350;">*</span></label>
+                        <input type="text" id="campTitleInput" placeholder="Ex: Quarta da Pizza em Dobro, Promoção de Domingo..." style="width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-size: 13.5px;">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label style="display: block; font-size: 11.5px; font-weight: 700; color: var(--text-light); margin-bottom: 4px;">Descrição / Observação</label>
+                        <input type="text" id="campDescInput" placeholder="Ex: Disparo promocional 10% OFF" style="width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-size: 13.5px;">
+                    </div>
+                </div>
+
+                <!-- Segmentação de Público -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                        <label style="font-size: 12px; font-weight: 700; color: var(--text-main); text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+                            <span class="material-symbols-rounded" style="color: #f5a623; font-size: 18px;">groups</span>
+                            Público-Alvo da Campanha:
+                        </label>
+                        <div id="campAudienceCountDisplay" style="font-size: 12.5px;"></div>
+                    </div>
+
+                    <select id="campSegmentSelect" onchange="onCampaignSegmentChange(this.value)" style="width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main); font-size: 13.5px; font-weight: 600;">
+                        <option value="authorized_all">✅ Todos os Clientes com WhatsApp Autorizado</option>
+                        <option value="authorized_bought">🍕 Clientes que já compraram (Autorizados)</option>
+                        <option value="authorized_frequent">⭐ Compradores Frequentes (3+ pedidos - Autorizados)</option>
+                        <option value="authorized_inactive_30">💤 Clientes Inativos há mais de 30 dias (Autorizados)</option>
+                        <option value="authorized_inactive_60">⏳ Clientes Inativos há mais de 60 dias (Autorizados)</option>
+                        <option value="authorized_new_30">🆕 Novos Clientes nos últimos 30 dias (Autorizados)</option>
+                        <option value="manual">✍️ Seleção Manual na Lista</option>
+                    </select>
+
+                    <div id="campManualTableContainer" class="display-none" style="margin-top: 14px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <thead style="background: var(--bg-surface); position: sticky; top: 0; font-size: 11px; text-transform: uppercase;">
+                                <tr>
+                                    <th style="padding: 6px 12px; width: 40px; text-align: center;">Sel.</th>
+                                    <th style="padding: 6px 12px;">Cliente</th>
+                                    <th style="padding: 6px 12px;">WhatsApp</th>
+                                    <th style="padding: 6px 12px; text-align: center;">Autorização</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campManualTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Editor de Mensagem e Pré-visualização lado a lado -->
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px;">
+                    <!-- Editor de Template -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label style="font-size: 12px; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Mensagem da Campanha <span style="color: #ef5350;">*</span></label>
+                            <div style="display: flex; gap: 4px;">
+                                <button type="button" class="btn-var-insert" onclick="insertCampaignVariable('nome')" title="Insere o primeiro nome do cliente">{nome}</button>
+                                <button type="button" class="btn-var-insert" onclick="insertCampaignVariable('link')" title="Insere o link do cardápio digital">{link}</button>
+                            </div>
+                        </div>
+
+                        <textarea id="campTemplateTextarea" oninput="updateWhatsAppPreview()" rows="8" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-family: inherit; font-size: 13px; line-height: 1.5; resize: vertical;"></textarea>
+                        <small style="color: var(--text-muted); font-size: 11px;">Dica: Use <strong>{nome}</strong> para personalizar cada envio com o nome do cliente e <strong>{link}</strong> para o cardápio.</small>
+                    </div>
+
+                    <!-- Mockup Balão WhatsApp -->
+                    <div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+                            📱 Pré-visualização no WhatsApp:
+                        </div>
+                        <div class="whatsapp-mockup-screen" style="background: #0b141a; border: 1px solid #233138; border-radius: 12px; padding: 16px; min-height: 200px; display: flex; flex-direction: column; justify-content: flex-end;">
+                            <div class="whatsapp-bubble-out" style="background: #005c4b; color: #e9edef; padding: 10px 14px; border-radius: 8px 8px 0 8px; font-size: 12.5px; line-height: 1.45; word-break: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.3); max-width: 95%; align-self: flex-end;">
+                                <div id="campWhatsappPreviewBubble">Mensagem...</div>
+                                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 3px; font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 4px;">
+                                    <span id="campWhatsappPreviewTime">19:30</span>
+                                    <span class="material-symbols-rounded" style="font-size: 14px; color: #53bdeb;">done_all</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 14px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; background: var(--bg-card);">
+                <button type="button" onclick="closeNewCampaignModal()" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 9px 18px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">Cancelar</button>
+                <button type="button" onclick="saveAndPrepareCampaign()" style="background: linear-gradient(135deg, #25d366, #128c7e); color: #000; font-weight: 800; border: none; padding: 9px 22px; border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(37,211,102,0.3);">
+                    <span class="material-symbols-rounded">send</span>
+                    <span>Criar e Abrir Fila de Disparo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PRINCIPAL DE EXECUÇÃO E DISPARO DE CAMPANHA WHATSAPP -->
+    <div class="modal-overlay display-none" id="campaignDispatchModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1270; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: var(--transition);">
+        <div class="modal-container" style="max-width: 920px; width: 95%; max-height: 92vh; display: flex; flex-direction: column; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: 0 16px 50px rgba(0,0,0,0.75); overflow: hidden;">
+            <!-- Header -->
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border-color); background: var(--bg-card);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="material-symbols-rounded" style="color: #25d366; font-size: 28px;">rocket_launch</span>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h3 id="dispatchModalTitle" style="color: var(--text-main); font-family: var(--font-display); font-size: 18px; margin: 0;">Disparador de Campanha</h3>
+                            <span id="dispatchCampaignStatusBadge" class="crm-badge wa-badge-pending">RASCUNHO</span>
+                        </div>
+                        <p id="dispatchModalDesc" style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted);">Processamento automático em lote via WhatsApp Business API com controle de status.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-modal" onclick="closeCampaignDispatchModal()" style="border: none; background: transparent; color: var(--text-light); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%;">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+
+            <!-- Body com Scroll -->
+            <div style="overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px;">
+                <!-- Aviso de Integração Oficial / Fallback -->
+                <div id="dispatchIntegrationNotice" style="display: none; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 12.5px; line-height: 1.4;">
+                    <!-- Preenchido dinamicamente pelo JS -->
+                </div>
+
+                <!-- Barra de Ações Principais do Disparo -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Ação Principal</span>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <!-- Botão Principal: 🚀 ENVIAR CAMPANHA -->
+                            <button type="button" id="btnStartAutoDispatch" onclick="promptConfirmCampaignDispatch()" class="btn-main-dispatch">
+                                <span class="material-symbols-rounded">rocket_launch</span>
+                                <span>🚀 ENVIAR CAMPANHA</span>
+                            </button>
+
+                            <!-- Controles de Execução (Ocultos inicialmente) -->
+                            <button type="button" id="btnPauseAutoDispatch" onclick="pauseCampaignDispatch()" class="btn-control-pause" style="display: none;">
+                                <span class="material-symbols-rounded">pause_circle</span>
+                                <span>⏸ Pausar Campanha</span>
+                            </button>
+                            <button type="button" id="btnResumeAutoDispatch" onclick="resumeCampaignDispatch()" class="btn-control-resume" style="display: none;">
+                                <span class="material-symbols-rounded">play_circle</span>
+                                <span>▶ Retomar Envio</span>
+                            </button>
+                            <button type="button" id="btnCancelAutoDispatch" onclick="cancelCampaignDispatch()" class="btn-control-cancel" style="display: none;">
+                                <span class="material-symbols-rounded">stop_circle</span>
+                                <span>🛑 Cancelar Campanha</span>
+                            </button>
+                            <button type="button" id="btnRetryErrors" onclick="retryFailedRecipients()" class="btn-control-retry" style="display: none;">
+                                <span class="material-symbols-rounded">refresh</span>
+                                <span>🔄 Tentar Novamente os Erros (<span id="countErrorsToRetry">0</span>)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Modo de Fallback Manual -->
+                    <div style="text-align: right;">
+                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Contingência / Fallback</span>
+                        <button type="button" id="btnToggleManualMode" onclick="toggleManualDispatchMode()" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); color: var(--text-light); font-size: 11.5px; font-weight: 600; padding: 6px 12px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                            <span class="material-symbols-rounded" style="font-size: 15px;">touch_app</span>
+                            <span id="txtManualModeToggle">Ativar Modo Manual 1 a 1</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Painel de Progresso em Tempo Real -->
+                <div id="dispatchProgressWrapper" style="display: none; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">Progresso do Processamento Automático</span>
+                        <span id="dispatchProgressPercentage" style="font-size: 14px; font-weight: 800; color: #25d366;">0%</span>
+                    </div>
+
+                    <!-- Barra visual -->
+                    <div class="campaign-progress-bar" style="margin-bottom: 12px;">
+                        <div id="dispatchProgressFill" class="campaign-progress-fill" style="width: 0%;"></div>
+                    </div>
+
+                    <!-- Métricas ao vivo -->
+                    <div style="display: flex; gap: 15px; font-size: 12px; flex-wrap: wrap;">
+                        <span style="color: var(--text-light); font-weight: 600;">
+                            📊 <span id="dispatchProcessedCount">0</span> de <span id="dispatchTotalCount">0</span> processados
+                        </span>
+                        <span style="color: #25d366; font-weight: 700;">
+                            ✅ <span id="dispatchSentCount">0</span> enviados
+                        </span>
+                        <span style="color: #ef5350; font-weight: 700;">
+                            ❌ <span id="dispatchErrorCount">0</span> erros
+                        </span>
+                        <span style="color: #ce93d8; font-weight: 700;">
+                            📖 <span id="dispatchReadCount">0</span> lidos
+                        </span>
+                        <span style="color: var(--text-muted); font-weight: 600;">
+                            ⏳ <span id="dispatchWaitingCount">0</span> aguardando
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Tabela de Destinatários com Status Individual -->
+                <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead style="background: var(--bg-card); font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                            <tr>
+                                <th style="padding: 10px 14px;">Cliente</th>
+                                <th style="padding: 10px 14px;">WhatsApp</th>
+                                <th style="padding: 10px 14px; text-align: center;">Status</th>
+                                <th style="padding: 10px 14px; text-align: center;">Horário</th>
+                                <th style="padding: 10px 14px; text-align: center;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dispatchRecipientsTableBody">
+                            <!-- Inserido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 14px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-card);">
+                <span id="dispatchFooterStats" style="font-size: 12px; color: var(--text-muted);">Pronto para iniciar.</span>
+                <button type="button" onclick="closeCampaignDispatchModal()" style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 9px 18px; font-weight: 600; cursor: pointer; background: var(--bg-surface); color: var(--text-main);">Concluir / Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE SEGURANÇA (ENVIAR CAMPANHA?) -->
+    <div class="modal-overlay display-none" id="confirmCampaignDispatchModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.88); z-index: 1280; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: var(--transition);">
+        <div class="modal-container" style="max-width: 520px; width: 92%; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: 0 16px 50px rgba(0,0,0,0.85); overflow: hidden; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(37, 211, 102, 0.18); color: #25d366; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; border: 1px solid rgba(37, 211, 102, 0.35);">
+                    <span class="material-symbols-rounded" style="font-size: 32px;">rocket_launch</span>
+                </div>
+                <h3 style="margin: 0; color: var(--text-main); font-family: var(--font-display); font-size: 20px;">ENVIAR CAMPANHA?</h3>
+                <p style="margin: 6px 0 0 0; font-size: 13px; color: var(--text-muted);">Confirme os dados antes de iniciar o processamento automático.</p>
+            </div>
+
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; margin-bottom: 20px;">
+                <div style="margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Campanha:</span>
+                    <h4 id="confirmCampTitle" style="margin: 2px 0 0 0; color: var(--text-main); font-size: 15px;">-</h4>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12.5px;">
+                    <div>
+                        <span style="color: var(--text-muted); display: block;">Destinatários Elegíveis:</span>
+                        <strong id="confirmCampAuthorized" style="color: #25d366; font-size: 16px;">0</strong>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-muted); display: block;">Sem Autorização LGPD:</span>
+                        <strong id="confirmCampUnauthorized" style="color: #ef5350; font-size: 16px;">0</strong>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border-color); font-size: 11.5px; color: var(--text-muted);">
+                    🔒 Somente clientes com <strong>marketingWhatsApp === true</strong> e telefone válido serão processados.
+                </div>
+            </div>
+
+            <p style="font-size: 12px; color: var(--text-light); text-align: center; margin-bottom: 22px; line-height: 1.4;">
+                Esta ação iniciará o processamento automático sequencial da campanha. Não feche a aba até a conclusão ou pause se necessário.
+            </p>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeConfirmCampaignDispatchModal()" style="flex: 1; padding: 11px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: transparent; color: var(--text-light); font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="button" id="btnConfirmAndExecuteDispatch" onclick="confirmAndExecuteDispatch()" style="flex: 1.3; padding: 11px 16px; border-radius: var(--radius-sm); border: none; background: linear-gradient(135deg, #25d366, #128c7e); color: #0b141a; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 16px rgba(37,211,102,0.4);">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">rocket_launch</span>
+                    <span>🚀 Confirmar Envio</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE RELATÓRIO FINAL DA CAMPANHA -->
+    <div class="modal-overlay display-none" id="campaignFinalReportModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.88); z-index: 1290; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: var(--transition);">
+        <div class="modal-container" style="max-width: 560px; width: 92%; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: 0 16px 50px rgba(0,0,0,0.85); overflow: hidden; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(37, 211, 102, 0.18); color: #25d366; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; border: 1px solid rgba(37, 211, 102, 0.35);">
+                    <span class="material-symbols-rounded" style="font-size: 32px;">check_circle</span>
+                </div>
+                <h3 style="margin: 0; color: var(--text-main); font-family: var(--font-display); font-size: 20px;">CAMPANHA CONCLUÍDA</h3>
+                <p id="reportCampaignTitle" style="margin: 6px 0 0 0; font-size: 14px; font-weight: 700; color: var(--primary);">🍕 Fina Massa Pizzaria</p>
+            </div>
+
+            <!-- Grid de Métricas Reais -->
+            <div class="campaign-report-grid">
+                <div class="campaign-report-item">
+                    <span class="metric-num" id="reportMetricTotal">0</span>
+                    <span class="metric-label">Destinatários</span>
+                </div>
+                <div class="campaign-report-item">
+                    <span class="metric-num" id="reportMetricSent" style="color: #25d366;">0</span>
+                    <span class="metric-label">Enviadas</span>
+                </div>
+                <div class="campaign-report-item">
+                    <span class="metric-num" id="reportMetricDelivered" style="color: #00bdae;">0</span>
+                    <span class="metric-label">Entregues</span>
+                </div>
+                <div class="campaign-report-item">
+                    <span class="metric-num" id="reportMetricRead" style="color: #ce93d8;">0</span>
+                    <span class="metric-label">Lidas</span>
+                </div>
+                <div class="campaign-report-item">
+                    <span class="metric-num" id="reportMetricErrors" style="color: #ef5350;">0</span>
+                    <span class="metric-label">Erros</span>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; flex-wrap: wrap;">
+                <button type="button" onclick="closeCampaignFinalReportModal(false)" style="padding: 10px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: transparent; color: var(--text-light); font-weight: 600; cursor: pointer;">
+                    Ver Detalhes
+                </button>
+                <button type="button" id="btnReportRetryErrors" onclick="retryFailedRecipientsFromReport()" style="display: none; padding: 10px 16px; border-radius: var(--radius-sm); border: 1px solid rgba(66, 133, 244, 0.4); background: rgba(66, 133, 244, 0.15); color: #8ab4f8; font-weight: 700; cursor: pointer;">
+                    Tentar Novamente os Erros
+                </button>
+                <button type="button" onclick="closeCampaignFinalReportModal(true)" style="padding: 10px 20px; border-radius: var(--radius-sm); border: none; background: #25d366; color: #0b141a; font-weight: 800; cursor: pointer;">
+                    Concluir / Fechar
+                </button>
+            </div>
         </div>
     </div>
 </body>
