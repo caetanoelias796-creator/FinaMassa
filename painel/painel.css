@@ -472,7 +472,7 @@ input:checked + .slider:before {
 .card-data .label {
     font-size: 12px;
     font-weight: 700;
-    color: var(--text-muted);
+    color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     display: block;
@@ -482,9 +482,14 @@ input:checked + .slider:before {
 .card-data h3 {
     font-size: 24px;
     font-weight: 900;
-    color: var(--text-main);
+    color: #0f172a !important;
     margin: 0;
     line-height: 1.1;
+}
+
+#revenueCount {
+    color: #0f172a !important;
+    font-weight: 900;
 }
 
 /* ==========================================================================
