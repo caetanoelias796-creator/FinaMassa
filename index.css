@@ -2045,3 +2045,60 @@ body:has(.cart-drawer-overlay.active) .floating-cart-btn {
     color: var(--status-red);
 }
 
+/* ==========================================================================
+   ROLAGEM COMPACTA E FILTRO DE SABORES NO CARDÁPIO (ESTILO PAINEL)
+   ========================================================================== */
+.custom-opt-flavor-search {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    font-size: 12.5px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+    transition: var(--transition);
+}
+
+.custom-opt-flavor-search:focus {
+    border-color: var(--accent-gold, #f5a623);
+    box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.2);
+    background: var(--bg-card);
+}
+
+.custom-opt-flavor-search::placeholder {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.cardapio-opt-scroll-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    max-height: 230px;
+    overflow-y: auto;
+    padding-right: 6px;
+    margin-top: 4px;
+    overscroll-behavior: contain;
+}
+
+/* Barra de rolagem personalizada estilo dark gold */
+.cardapio-opt-scroll-list::-webkit-scrollbar {
+    width: 6px;
+}
+.cardapio-opt-scroll-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+}
+.cardapio-opt-scroll-list::-webkit-scrollbar-thumb {
+    background: rgba(245, 166, 35, 0.35);
+    border-radius: 4px;
+}
+.cardapio-opt-scroll-list::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-gold, #f5a623);
+}
+
+

@@ -1005,9 +1005,12 @@ function renderDynamicOptionGroups(product) {
 
         const max = group.maxSelections || 1;
         const isSingle = max === 1;
+        const optionsCount = (group.options || []).length;
+        const hasSearch = optionsCount > 5;
+        const useScrollList = optionsCount > 4;
 
         groupCard.innerHTML = `
-            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <div>
                     <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-color, #222);">${group.title || group.name}</h3>
                     ${group.description ? `<p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">${group.description}</p>` : ''}
@@ -1017,7 +1020,12 @@ function renderDynamicOptionGroups(product) {
                     <span id="badge_group_${group.id}" style="font-size: 11px; font-weight: 700; background: rgba(0,0,0,0.06); padding: 3px 8px; border-radius: 12px;"></span>
                 </div>
             </div>
-            <div class="group-options-list" id="group_options_${group.id}" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            ${hasSearch ? `
+                <div style="margin-bottom: 6px;">
+                    <input type="text" class="custom-opt-flavor-search" id="search_group_${group.id}" placeholder="🔍 Filtrar sabores (ex: calabresa, filé, 4 queijos...)" oninput="filterCardapioOptionGroup('${group.id}', this.value)">
+                </div>
+            ` : ''}
+            <div class="group-options-list ${useScrollList ? 'cardapio-opt-scroll-list' : ''}" id="group_options_${group.id}" style="display: flex; flex-direction: column; gap: 8px;"></div>
         `;
 
         const optionsContainer = groupCard.querySelector(`#group_options_${group.id}`);
@@ -1033,10 +1041,12 @@ function renderDynamicOptionGroups(product) {
             optRow.id = `opt_row_${group.id}_${opt.id}`;
             optRow.setAttribute('role', 'button');
             optRow.setAttribute('tabindex', '0');
+            optRow.setAttribute('data-name', (opt.name || '').toLowerCase());
+            optRow.setAttribute('data-desc', (opt.ingredients || opt.description || '').toLowerCase());
             optRow.style.display = 'flex';
             optRow.style.alignItems = 'center';
             optRow.style.justifyContent = 'space-between';
-            optRow.style.padding = '12px 14px';
+            optRow.style.padding = '10px 12px';
             optRow.style.border = '1px solid var(--border-color)';
             optRow.style.borderRadius = '10px';
             optRow.style.cursor = 'pointer';
@@ -1046,7 +1056,7 @@ function renderDynamicOptionGroups(product) {
             const inputType = isSingle ? 'radio' : 'checkbox';
             const inputName = `opt_group_${group.id}`;
             const imgHTML = opt.image 
-                ? `<img src="${opt.image}" alt="${opt.name}" loading="lazy" style="width: 48px; height: 48px; object-fit: cover; border-radius: 8px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.4);" onerror="this.style.display='none'">` 
+                ? `<img src="${opt.image}" alt="${opt.name}" loading="lazy" style="width: 44px; height: 44px; object-fit: cover; border-radius: 8px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.4);" onerror="this.style.display='none'">` 
                 : '';
 
             optRow.innerHTML = `
@@ -1054,8 +1064,8 @@ function renderDynamicOptionGroups(product) {
                     <input type="${inputType}" id="opt_input_${group.id}_${opt.id}" name="${inputName}" value="${opt.id}" style="margin-top: 0; accent-color: var(--primary, #F5A623); flex-shrink: 0; pointer-events: none;">
                     ${imgHTML}
                     <div>
-                        <div style="font-weight: 700; font-size: 14px; color: var(--text-main);">${opt.name}</div>
-                        ${opt.ingredients ? `<div style="font-size: 12px; color: var(--text-muted); line-height: 1.35; margin-top: 2px;">${opt.ingredients}</div>` : ''}
+                        <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main);">${opt.name}</div>
+                        ${opt.ingredients ? `<div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.3; margin-top: 2px;">${opt.ingredients}</div>` : ''}
                     </div>
                 </div>
                 <div style="pointer-events: none;">${priceLabel}</div>
@@ -1080,6 +1090,25 @@ function renderDynamicOptionGroups(product) {
         updateOptionGroupUI(group.id);
     });
 }
+
+function filterCardapioOptionGroup(groupId, query) {
+    const list = document.getElementById(`group_options_${groupId}`);
+    if (!list) return;
+
+    const normQuery = (query || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const rows = list.querySelectorAll('.adicional-checkbox-row');
+
+    rows.forEach(row => {
+        const name = (row.getAttribute('data-name') || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const desc = (row.getAttribute('data-desc') || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (!normQuery || name.includes(normQuery) || desc.includes(normQuery)) {
+            row.style.display = 'flex';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+window.filterCardapioOptionGroup = filterCardapioOptionGroup;
 
 function updateOptionGroupUI(groupId) {
     if (!currentConfiguredProduct) return;
@@ -1138,6 +1167,7 @@ function onOptionSelectionChange(group, option, isSingle) {
 
     const currentList = currentConfiguredSelections[group.id];
     const isCurrentlySelected = currentList.some(s => s.id === option.id);
+    let justCompleted = false;
 
     if (isSingle) {
         if (isCurrentlySelected) {
@@ -1146,6 +1176,7 @@ function onOptionSelectionChange(group, option, isSingle) {
         } else {
             // Troca ou seleciona o novo sabor
             currentConfiguredSelections[group.id] = [option];
+            justCompleted = true;
             if (option.image) {
                 const modalImg = document.getElementById('pizzaModalHeaderImg');
                 if (modalImg) {
@@ -1162,6 +1193,9 @@ function onOptionSelectionChange(group, option, isSingle) {
                 return;
             }
             currentList.push(option);
+            if (currentList.length >= max) {
+                justCompleted = true;
+            }
             if (option.image) {
                 const modalImg = document.getElementById('pizzaModalHeaderImg');
                 if (modalImg) {
@@ -1176,6 +1210,28 @@ function onOptionSelectionChange(group, option, isSingle) {
     // Atualização cirúrgica in-place sem recriar o DOM
     updateOptionGroupUI(group.id);
     updateConfiguredPricePreview();
+
+    // Rolagem suave automática e inteligente para o próximo grupo de sabor ou comentários
+    if (justCompleted && currentConfiguredProduct && currentConfiguredProduct.optionGroups) {
+        const allGroups = currentConfiguredProduct.optionGroups;
+        const currentIdx = allGroups.findIndex(g => g.id === group.id);
+        if (currentIdx !== -1 && currentIdx < allGroups.length - 1) {
+            const nextGroup = allGroups[currentIdx + 1];
+            const nextGroupEl = document.getElementById(`group_card_${nextGroup.id}`);
+            if (nextGroupEl) {
+                setTimeout(() => {
+                    nextGroupEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 120);
+            }
+        } else if (currentIdx === allGroups.length - 1) {
+            const commentSec = document.getElementById('pizzaCommentSection');
+            if (commentSec) {
+                setTimeout(() => {
+                    commentSec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 120);
+            }
+        }
+    }
 }
 
 function clearConfiguredGroup(groupId) {
